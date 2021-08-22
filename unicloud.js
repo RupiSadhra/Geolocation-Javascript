@@ -24,7 +24,9 @@ function unicloud_module_technician_activity()
           //code to display only associated contractor job
           show_contractor_job(parent_id); 
         
-        
+            //hide info tab
+            const tab=document.querySelectorAll('.form_tab_128');
+            tab[0].style.display="none";
          
           window.onload = function() {
           if (navigator.geolocation) {
@@ -151,8 +153,8 @@ function show_contractor_job(parent_id)
 }
 
 function disable_arrival_on_site()
-{
-      const today = new Date();
+{ 
+     let today = new Date();
           const date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
           const time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
           const dateTime = date+' '+time;
@@ -167,6 +169,43 @@ function disable_arrival_on_site()
 
 function display_expected_departure_time()
 {
-    console.log('departure');
+    let timer;              // Timer identifier
+    const waitTime = 1000;
+    const input = document.querySelector('#fields_1760');
+    const input_parent = document.querySelector('#fields_1760_rendered_value');
+    var newEl = document.createElement("p");
+    newEl.style.fontWeight="600";
+   
+    newEl.innerHTML = "Expected Departure Time: ";
+    input_parent.append(newEl);
+    
+    const departure_time = (hours) => {
+        console.log(hours);
+       var expected_time=get_expected_time(hours);
+      newEl.innerHTML =  "Expected Departure Time: "+expected_time;
+    };
+  1629587598875
 
+    // Listen for `keyup` event
+    input.addEventListener('keyup', (e) => {
+    const time = e.currentTarget.value;
+    clearTimeout(timer);
+
+    // Wait for X ms and then process the request
+    timer = setTimeout(() => {
+        departure_time(time);
+    }, waitTime);
+});
+
+}
+
+
+function get_expected_time(hours)
+{
+     let today = new Date();
+    let ms=today.getTime();
+    ms+=(hours*3600*1000);
+     var date_new = new Date(ms);
+    var new_date= date_new.getHours() + ":" + date_new.getMinutes() + ":" + date_new.getSeconds();
+    return new_date;
 }
