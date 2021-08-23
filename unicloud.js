@@ -34,6 +34,10 @@ function unicloud_module_technician_activity() {
   //alert(siteLatitude+"  "+siteLongitude);
   const button = document.querySelector('button[type="submit"]');
   const button_message = document.getElementById("form-error-container");
+  const sign_in = document.querySelector('button[type="submit"]');
+  const arrival_location = document.querySelector("#fields_1759");
+  const arrival_form = document.querySelector(".form-group-1759");
+  arrival_form.style.display = "none";
 
   window.onload = function () {
     if (navigator.geolocation) {
@@ -52,8 +56,11 @@ function unicloud_module_technician_activity() {
             siteLongitude
           );
           console.log("distance: " + distance);
+          let arrivalLocation =
+            "[map]" + userLatitude + "," + userLongitude + "[/map]";
+          arrival_location.value = arrivalLocation;
 
-          if (distance > 1000) {
+          if (distance > 1) {
             // console.log("You need to be only 1km away from the site");
             console.log("button disable");
             button.disabled = true;
@@ -97,7 +104,20 @@ function unicloud_module_technician_activity() {
   disable_arrival_on_site();
 
   //get arrival location
-  get_arrival_location();
+  // get_arrival_location();
+
+  //   sign_in.addEventListener("click", function (e) {
+  //       e.preventDefault();
+  //       setTimeout(submitForm, 1000);
+  //       function submitForm() {
+  //         document.querySelector("form").submit();
+  //     }
+
+  //           //alert("lat..."+position.coords.latitude+" long..."+position.coords.longitude);
+
+  //           console.log("Arrival Location: "+arrival_location.value);
+
+  //   });
 }
 
 function find_distance(lat1, lon1, lat2, lon2) {
@@ -164,7 +184,7 @@ function disable_arrival_on_site() {
   const actual_arrival_on_site = document.querySelector("#fields_1862");
   actual_arrival_on_site.value = dateTime;
 
-  arrival_on_site.disabled = true;
+  arrival_on_site.readOnly = true;
 
   const dateset = document.querySelectorAll(".date-set");
   dateset[0].style.display = "none";
@@ -181,15 +201,25 @@ function disable_arrival_on_site() {
     if (value == 785) {
       $(".form-group-1851").css("display", "none");
       dateset[0].style.display = "none";
-      arrival_on_site.disabled = true;
+      arrival_on_site.readOnly = true;
       dateset[0].disabled = true;
+      arrival_on_site.value = dateTime;
     } else {
       $(".form-group-1851").css("display", "block");
       dateset[0].style.display = "block";
-      arrival_on_site.disabled = false;
+      arrival_on_site.readOnly = false;
       dateset[0].disabled = false;
     }
   });
+  arrival_on_site.addEventListener("focus", function () {
+    document.querySelector(".datetimepicker").style.display = "none";
+  });
+  //arrival_on_site.value = toTimestamp(dateTime);
+}
+
+function toTimestamp(strDate) {
+  var datum = Date.parse(strDate);
+  return datum / 1000;
 }
 
 function display_expected_departure_time() {
@@ -233,32 +263,4 @@ function get_expected_time(hours) {
     ":" +
     date_new.getSeconds();
   return new_date;
-}
-
-function get_arrival_location() {
-  const sign_in = document.querySelector('button[type="submit"]');
-  const arrival_location = document.querySelector("#fields_1759");
-  const arrival_form = document.querySelector(".form-group-1759");
-  arrival_form.style.display = "none";
-
-  sign_in.addEventListener("click", function () {
-    if (navigator.geolocation) {
-      //console.log('Geolocation is supported!');
-
-      window.navigator.geolocation.watchPosition(
-        (position) => {
-          //alert("lat..."+position.coords.latitude+" long..."+position.coords.longitude);
-          let userLatitude = position.coords.latitude;
-          let userLongitude = position.coords.longitude;
-          let arrivalLocation = userLatitude + "," + userLongitude;
-          arrival_location.value = arrivalLocation;
-        },
-        (error) => {
-          console.log(error.message);
-        }
-      );
-    } else {
-      console.log("Geolocation is not supported for this Browser/OS.");
-    }
-  });
 }
