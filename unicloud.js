@@ -1,8 +1,26 @@
+const path = window.location.href;
+const url = new URLSearchParams(path);
+const parent_id = url.get("parent_item_id");
+
+//code to display only associated contractor job
+show_contractor_job(parent_id);
+
+//hide info and reporting tab
+hide_tabs();
+
+//display expected departure time
+display_expected_departure_time();
+
+function hide_tabs() {
+  const info_tab = document.querySelectorAll(".form_tab_128");
+  info_tab[0].style.display = "none";
+  const reporting_tab = document.querySelectorAll(".form_tab_136");
+  reporting_tab[0].style.display = "none";
+}
+
 function unicloud_module_technician_activity() {
   //get id of current contractor job and location coordinates
-  const path = window.location.href;
-  const url = new URLSearchParams(path);
-  const parent_id = url.get("parent_item_id");
+
   const location = url.get("location");
   //console.log(parent_id);
   let startIndex = location.indexOf("]");
@@ -16,15 +34,6 @@ function unicloud_module_technician_activity() {
   //alert(siteLatitude+"  "+siteLongitude);
   const button = document.querySelector('button[type="submit"]');
   const button_message = document.getElementById("form-error-container");
-
-  //code to display only associated contractor job
-  show_contractor_job(parent_id);
-
-  //hide info and reporting tab
-  const info_tab = document.querySelectorAll(".form_tab_128");
-  info_tab[0].style.display = "none";
-  const reporting_tab = document.querySelectorAll(".form_tab_136");
-  reporting_tab[0].style.display = "none";
 
   window.onload = function () {
     if (navigator.geolocation) {
@@ -86,9 +95,6 @@ function unicloud_module_technician_activity() {
 
   //display current time/date and disable
   disable_arrival_on_site();
-
-  //display expected departure time
-  display_expected_departure_time();
 
   //get arrival location
   get_arrival_location();
