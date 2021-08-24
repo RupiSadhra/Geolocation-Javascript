@@ -1,6 +1,7 @@
 const path = window.location.href;
 const url = new URLSearchParams(path);
 const parent_id = url.get("parent_item_id");
+const form_id = url.get("id");
 
 //code to display only associated contractor job
 show_contractor_job(parent_id);
@@ -8,8 +9,18 @@ show_contractor_job(parent_id);
 //hide info and reporting tab
 hide_tabs();
 
-//display expected departure time
-display_expected_departure_time();
+//display expected departure time on update and sign in form
+if(form_id==9 || form_id==10)
+{
+    display_expected_departure_time();
+}
+
+//sign out form
+if(form_id==11)
+{
+    disable_site_departure();
+    departure_location();
+}
 
 function hide_tabs() {
   const info_tab = document.querySelectorAll(".form_tab_128");
@@ -17,6 +28,7 @@ function hide_tabs() {
   const reporting_tab = document.querySelectorAll(".form_tab_136");
   reporting_tab[0].style.display = "none";
 }
+
 
 function unicloud_module_technician_activity() {
   //get id of current contractor job and location coordinates
@@ -103,21 +115,8 @@ function unicloud_module_technician_activity() {
   //display current time/date and disable
   disable_arrival_on_site();
 
-  //get arrival location
-  // get_arrival_location();
 
-  //   sign_in.addEventListener("click", function (e) {
-  //       e.preventDefault();
-  //       setTimeout(submitForm, 1000);
-  //       function submitForm() {
-  //         document.querySelector("form").submit();
-  //     }
-
-  //           //alert("lat..."+position.coords.latitude+" long..."+position.coords.longitude);
-
-  //           console.log("Arrival Location: "+arrival_location.value);
-
-  //   });
+ 
 }
 
 function find_distance(lat1, lon1, lat2, lon2) {
@@ -177,15 +176,17 @@ function disable_arrival_on_site() {
     today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
   const dateTime = date + " " + time;
 
-  //sets default value for arrival on site and actual arrival on site reporting
+  //sets default value for arrival on site
   const arrival_on_site = document.querySelector("#fields_1762");
   arrival_on_site.value = dateTime;
 
+ //actual arrival on site reporting tab
   const actual_arrival_on_site = document.querySelector("#fields_1862");
   actual_arrival_on_site.value = dateTime;
 
   arrival_on_site.readOnly = true;
 
+//hides the calendar button
   const dateset = document.querySelectorAll(".date-set");
   dateset[0].style.display = "none";
   dateset[0].disabled = true;
@@ -214,7 +215,7 @@ function disable_arrival_on_site() {
   arrival_on_site.addEventListener("focus", function () {
     document.querySelector(".datetimepicker").style.display = "none";
   });
-  //arrival_on_site.value = toTimestamp(dateTime);
+  
 }
 
 function toTimestamp(strDate) {
@@ -263,4 +264,70 @@ function get_expected_time(hours) {
     ":" +
     date_new.getSeconds();
   return new_date;
+}
+
+
+
+//sign out form
+ //disable site departure
+
+function disable_site_departure()
+{
+  let today = new Date();
+  const date =
+    today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate();
+  const time =
+    today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+  const dateTime = date + " " + time;
+
+  //sets default value for site departure
+  const departure_on_site = document.querySelector("#fields_1763");
+  departure_on_site.value = dateTime;
+  departure_on_site.readOnly = true;
+
+  //hides the calendar button
+  const dateset = document.querySelectorAll(".date-set");
+  dateset[0].style.display = "none";
+  // dateset[0].disabled = true;
+
+
+  departure_on_site.addEventListener("focus", function () {
+    document.querySelector(".datetimepicker").style.display = "none";
+  });
+}
+
+function departure_location()
+{
+    //hide departue location
+    let departure_location_form=document.querySelector('.form-group-1764');
+    let departure_location=document.querySelector('#fields_1764');
+    departure_location_form.style.display="none";
+    
+    //capture departure location
+    
+    window.onload = function () {
+    if (navigator.geolocation) {
+      //console.log('Geolocation is supported!');
+
+      window.navigator.geolocation.watchPosition(
+        (position) => {
+          //alert("lat..."+position.coords.latitude+" long..."+position.coords.longitude);
+          let userLatitude = position.coords.latitude;
+          let userLongitude = position.coords.longitude;
+          //console.log("long: " + long + "lat: "+lat);
+         
+          let departureLocation =
+            "[map]" + userLatitude + "," + userLongitude + "[/map]";
+          departure_location.value = departureLocation;
+
+        
+        },
+        (error) => {
+          console.log(error.message);
+        }
+      );
+    } else {
+      console.log("Geolocation is not supported for this Browser/OS.");
+    }
+  };
 }
