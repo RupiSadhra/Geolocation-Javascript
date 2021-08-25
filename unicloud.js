@@ -2,6 +2,16 @@ const path = window.location.href;
 const url = new URLSearchParams(path);
 const parent_id = url.get("parent_item_id");
 const form_id = url.get("id");
+const form_path = url.get("path");
+console.log("form_path: " + form_path);
+const technician_id = url.get("technician_id");
+const token = document.getElementById("form_session_token").value;
+const action_url = `https://pae.unicloud.co.nz/dev/index.php?module=items/processes&action=run&id=143&path=${form_path}/77-${technician_id}&token=${token}`;
+console.log("URL: " + action_url);
+
+//change action url of public form
+const public_form = document.getElementById("public_form");
+public_form.action = action_url;
 
 //code to display only associated contractor job
 show_contractor_job(parent_id);
@@ -10,16 +20,14 @@ show_contractor_job(parent_id);
 hide_tabs();
 
 //display expected departure time on update and sign in form
-if(form_id==9 || form_id==10)
-{
-    display_expected_departure_time();
+if (form_id == 9 || form_id == 10) {
+  display_expected_departure_time();
 }
 
 //sign out form
-if(form_id==11)
-{
-    disable_site_departure();
-    departure_location();
+if (form_id == 11) {
+  disable_site_departure();
+  departure_location();
 }
 
 function hide_tabs() {
@@ -28,7 +36,6 @@ function hide_tabs() {
   const reporting_tab = document.querySelectorAll(".form_tab_136");
   reporting_tab[0].style.display = "none";
 }
-
 
 function unicloud_module_technician_activity() {
   //get id of current contractor job and location coordinates
@@ -114,9 +121,6 @@ function unicloud_module_technician_activity() {
 
   //display current time/date and disable
   disable_arrival_on_site();
-
-
- 
 }
 
 function find_distance(lat1, lon1, lat2, lon2) {
@@ -180,13 +184,13 @@ function disable_arrival_on_site() {
   const arrival_on_site = document.querySelector("#fields_1762");
   arrival_on_site.value = dateTime;
 
- //actual arrival on site reporting tab
+  //actual arrival on site reporting tab
   const actual_arrival_on_site = document.querySelector("#fields_1862");
   actual_arrival_on_site.value = dateTime;
 
   arrival_on_site.readOnly = true;
 
-//hides the calendar button
+  //hides the calendar button
   const dateset = document.querySelectorAll(".date-set");
   dateset[0].style.display = "none";
   dateset[0].disabled = true;
@@ -215,7 +219,6 @@ function disable_arrival_on_site() {
   arrival_on_site.addEventListener("focus", function () {
     document.querySelector(".datetimepicker").style.display = "none";
   });
-  
 }
 
 function toTimestamp(strDate) {
@@ -266,13 +269,10 @@ function get_expected_time(hours) {
   return new_date;
 }
 
-
-
 //sign out form
- //disable site departure
+//disable site departure
 
-function disable_site_departure()
-{
+function disable_site_departure() {
   let today = new Date();
   const date =
     today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate();
@@ -290,22 +290,20 @@ function disable_site_departure()
   dateset[0].style.display = "none";
   // dateset[0].disabled = true;
 
-
   departure_on_site.addEventListener("focus", function () {
     document.querySelector(".datetimepicker").style.display = "none";
   });
 }
 
-function departure_location()
-{
-    //hide departue location
-    let departure_location_form=document.querySelector('.form-group-1764');
-    let departure_location=document.querySelector('#fields_1764');
-    departure_location_form.style.display="none";
-    
-    //capture departure location
-    
-    window.onload = function () {
+function departure_location() {
+  //hide departue location
+  let departure_location_form = document.querySelector(".form-group-1764");
+  let departure_location = document.querySelector("#fields_1764");
+  departure_location_form.style.display = "none";
+
+  //capture departure location
+
+  window.onload = function () {
     if (navigator.geolocation) {
       //console.log('Geolocation is supported!');
 
@@ -315,12 +313,10 @@ function departure_location()
           let userLatitude = position.coords.latitude;
           let userLongitude = position.coords.longitude;
           //console.log("long: " + long + "lat: "+lat);
-         
+
           let departureLocation =
             "[map]" + userLatitude + "," + userLongitude + "[/map]";
           departure_location.value = departureLocation;
-
-        
         },
         (error) => {
           console.log(error.message);
