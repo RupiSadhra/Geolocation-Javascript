@@ -19,7 +19,6 @@ window.onload = function () {
     const action_url =
       instance_url +
       `?module=antevasin/unicloud/public_process&action=run&id=143&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
-    console.log("URL: " + action_url);
 
     //change action url of public form
     const public_form = document.getElementById("public_form");
@@ -27,7 +26,10 @@ window.onload = function () {
 
     display_expected_departure_time("");
     unicloud_module_technician_activity();
+    const reporting_tab = document.querySelectorAll(".form_tab_136");
+    reporting_tab[0].style.display = "none";
   }
+
   //update form
   else if (form_id == 10) {
     const action_url =
@@ -40,7 +42,10 @@ window.onload = function () {
     public_form.action = action_url;
 
     const expected_time = url.get("expected_time");
-    display_expected_departure_time(expected_time);
+    let time_on_site = url.get("time_on_site");
+    let previous_time = time_on_site.split(" ");
+    time_on_site = parseInt(previous_time[0]);
+    update_expected_departure_time(expected_time, time_on_site);
   }
 
   //sign out form
@@ -56,13 +61,12 @@ window.onload = function () {
 
     disable_site_departure();
     departure_location();
+    hide_visit_site_again();
   }
 
   function hide_tabs() {
     const info_tab = document.querySelectorAll(".form_tab_128");
     info_tab[0].style.display = "none";
-    const reporting_tab = document.querySelectorAll(".form_tab_136");
-    reporting_tab[0].style.display = "none";
   }
 
   function unicloud_module_technician_activity() {
@@ -129,19 +133,19 @@ window.onload = function () {
 
     //hides or shows the geolocation override reason textarea
     const dropdown = document.querySelector("#fields_1765");
-    var value;
-    $(".form-group-1766").css("display", "none");
+    const override_location = document.querySelector(".form-group-1766");
+    override_location.style.display = "none";
 
     dropdown.addEventListener("change", function () {
-      value = dropdown.value;
+      let value = dropdown.value;
 
       if (value == 760) {
-        $(".form-group-1766").css("display", "none");
+        override_location.style.display = "none";
         button.disabled = true;
         button_message.innerText =
           "Sign In disabled due to distance from site!";
       } else {
-        $(".form-group-1766").css("display", "block");
+        override_location.style.display = "block";
         button.disabled = false;
         button_message.innerText = "";
       }
@@ -258,21 +262,67 @@ window.onload = function () {
     });
   }
 
-  function display_expected_departure_time(expected_time) {
+  function display_expected_departure_time(previous_expected_time) {
     let timer; // Timer identifier
-    const waitTime = 1000;
+    const waitTime = 500;
     const input = document.querySelector("#fields_1760");
     const input_parent = document.querySelector("#fields_1760_rendered_value");
     var newEl = document.createElement("h4");
     newEl.style.fontWeight = "600";
 
-    newEl.innerHTML = "Expected Departure Time: " + expected_time;
+    newEl.innerHTML = "Expected Departure Time: " + previous_expected_time;
     input_parent.append(newEl);
 
     const departure_time = (hours) => {
-      console.log(hours);
       var expected_time = get_expected_time(hours);
-      newEl.innerHTML = "Expected Departure Time: " + expected_time;
+      if (hours > 0 || hours != "") {
+        newEl.innerHTML = "Expected Departure Time: " + expected_time;
+      } else {
+        newEl.innerHTML = "Expected Departure Time: " + previous_expected_time;
+      }
+    };
+
+    // Listen for `keyup` event
+    input.addEventListener("keyup", (e) => {
+      const time = e.currentTarget.value;
+      clearTimeout(timer);
+
+      // Wait for X ms and then process the request
+      timer = setTimeout(() => {
+        departure_time(time);
+      }, waitTime);
+    });
+  }
+
+  function update_expected_departure_time(
+    previous_expected_time,
+    time_on_site
+  ) {
+    let timer; // Timer identifier
+    const waitTime = 500;
+
+    const previous_time = document.querySelector("#fields_1760");
+    previous_time.value = time_on_site;
+    previous_time.readOnly = true;
+
+    const input = document.querySelector("#fields_1903");
+    const input_parent = document.querySelector("#fields_1903_rendered_value");
+    var newEl = document.createElement("h4");
+    newEl.style.fontWeight = "600";
+
+    newEl.innerHTML = "Expected Departure Time: " + previous_expected_time;
+    input_parent.append(newEl);
+
+    const departure_time = (hours) => {
+      var expected_time = get_updated_time(hours, previous_expected_time);
+      if (hours > 0 || hours != "") {
+        newEl.innerHTML = "Expected Departure Time: " + expected_time;
+        hours = parseInt(hours);
+        previous_time.value = hours + time_on_site;
+      } else {
+        newEl.innerHTML = "Expected Departure Time: " + previous_expected_time;
+        previous_time.value = time_on_site;
+      }
     };
 
     // Listen for `keyup` event
@@ -298,6 +348,20 @@ window.onload = function () {
       date_new.getMinutes() +
       ":" +
       date_new.getSeconds();
+    return new_date;
+  }
+
+  function get_updated_time(hours, previous_expected_time) {
+    let date_time = previous_expected_time.split(" ");
+    let time = date_time[0];
+    let date = date_time[1];
+    let date_new = date.split("/");
+    date = `${date_new[2]}-${date_new[1]}-${date_new[0]}`;
+    date = `${date} ${date_time[0]}`;
+    let ms = Date.parse(date);
+    ms += hours * 3600 * 1000;
+    date_new = new Date(ms);
+    let new_date = date_new.getHours() + ":" + date_new.getMinutes();
     return new_date;
   }
 
@@ -362,6 +426,22 @@ window.onload = function () {
         console.log("Geolocation is not supported for this Browser/OS.");
       }
     };
+  }
+
+  function hide_visit_site_again() {
+    const dropdown = document.querySelector("#fields_1901");
+    const visit_site = document.querySelector(".form-group-1902");
+    visit_site.style.display = "none";
+
+    dropdown.addEventListener("change", function () {
+      let value = dropdown.value;
+
+      if (value == 806) {
+        visit_site.style.display = "none";
+      } else {
+        visit_site.style.display = "block";
+      }
+    });
   }
 
   function get_instance_url() {
