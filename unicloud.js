@@ -62,6 +62,8 @@ window.onload = function () {
     disable_site_departure();
     departure_location();
     hide_visit_site_again();
+    const reporting_tab = document.querySelectorAll(".form_tab_136");
+    reporting_tab[0].style.display = "none";
   }
 
   function hide_tabs() {
@@ -73,14 +75,14 @@ window.onload = function () {
     //get id of current contractor job and location coordinates
 
     const location = url.get("location");
-    //console.log(parent_id);
+    console.log(location);
     let startIndex = location.indexOf("]");
     startIndex++;
     const coordinates = location.substring(startIndex, location.indexOf("("));
     let lastIndex = coordinates.indexOf(",");
     lastIndex++;
     //alert(coordinates);
-    const siteLatitude = coordinates.substring(0, coordinates.indexOf(","));
+    const siteLatitude = location.substring(startIndex, location.indexOf(","));
     const siteLongitude = coordinates.substring(lastIndex);
     //alert(siteLatitude+"  "+siteLongitude);
     const button = document.querySelector('button[type="submit"]');
@@ -385,11 +387,37 @@ window.onload = function () {
     departure_on_site.value = dateTime;
     departure_on_site.readOnly = true;
 
+    //actual site departure reporting tab
+    const actual_site_departure = document.querySelector("#fields_1904");
+    actual_site_departure.value = dateTime;
+
     //hides the calendar button
     const dateset = document.querySelectorAll(".date-set");
     dateset[0].style.display = "none";
     // dateset[0].disabled = true;
 
+    //hides or shows the arrival on site textarea
+    const dropdown = document.querySelector("#fields_1905");
+    var value;
+    $(".form-group-1906").css("display", "none");
+
+    dropdown.addEventListener("change", function () {
+      value = dropdown.value;
+
+      if (value == 808) {
+        $(".form-group-1906").css("display", "none");
+        dateset[0].style.display = "none";
+        departure_on_site.readOnly = true;
+        dateset[0].disabled = true;
+        departure_on_site.value = dateTime;
+      } else {
+        $(".form-group-1906").css("display", "block");
+        dateset[0].style.display = "block";
+        departure_on_site.readOnly = false;
+        dateset[0].disabled = false;
+        $("#fields_1906").attr("required", "");
+      }
+    });
     departure_on_site.addEventListener("focus", function () {
       document.querySelector(".datetimepicker").style.display = "none";
     });
@@ -440,6 +468,18 @@ window.onload = function () {
         visit_site.style.display = "none";
       } else {
         visit_site.style.display = "block";
+        const submit_button = document.querySelector('button[type="submit"]');
+        submit_button.addEventListener("click", function (e) {
+          e.preventDefault();
+
+          $.ajax({
+            url: "",
+            data: {},
+            type: "POST",
+            success: function (response) {},
+            error: function (error) {},
+          });
+        });
       }
     });
   }
