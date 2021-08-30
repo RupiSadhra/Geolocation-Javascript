@@ -15,12 +15,11 @@ if (form_id == 9) {
   //check status and redirect if applicable
   let check_status_url =
     instance_url +
-    "?module=antevasin/unicloud/public_process&action=get_value&item=77-155&token=fZIQPKK39S&field_id=1768";
+    `?module=antevasin/unicloud/public_process&action=get_value&item=77-${technician_id}&token=${token}&field_id=1768`;
   let location = url.get("location");
   let redirect_url =
     instance_url +
     `?module=ext/public/form&id=10&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${location}&path=${form_path}/77-${technician_id}`;
-  console.log(redirect_url);
   let status = check_status(check_status_url, redirect_url);
 
   const action_url =
@@ -30,8 +29,15 @@ if (form_id == 9) {
   //change action url of public form
   const public_form = document.getElementById("public_form");
   public_form.action = action_url;
+  let planned_time_onsite = url.get("planned_time_onsite");
+  if (planned_time_onsite !== "") {
+    $("#fields_1760").val(parseFloat(planned_time_onsite));
+    // let arrival_time_onsite = document.querySelector("#fields_1762");
+    // update_departure_time( arrival_time_onsite, parseInt( planned_time_onsite ) );
+  }
 
-  display_expected_departure_time("");
+  display_expected_departure_time(planned_time_onsite);
+
   unicloud_module_technician_activity();
   const reporting_tab = document.querySelectorAll(".form_tab_136");
   reporting_tab[0].style.display = "none";
@@ -49,18 +55,24 @@ else if (form_id == 10) {
     `?module=antevasin/unicloud/public_process&action=run&id=145&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
   console.log("URL: " + action_url);
   // add Sign Out button
-  $(".btn-primary").after(
-    '<button onclick="sign_out_from_update_form( this )" class="btn btn-secondary">SIGN OUT</button>'
-  );
+  let location = url.get("location");
+  let sign_out_action_url =
+    instance_url +
+    `?module=ext/public/form&id=11&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${location}&path=${form_path}&token=${token}`;
+  let sign_out_button_html = `<button type="button" onclick="sign_out_from_update_form( '${sign_out_action_url}' )" class="btn btn-primary">SIGN OUT</button>`;
+  $(".btn-primary").after(sign_out_button_html);
   //change action url of public form
   const public_form = document.getElementById("public_form");
   public_form.action = action_url;
 
-  const expected_time = url.get("expected_time");
-  let time_on_site = url.get("time_on_site");
-  let previous_time = time_on_site.split(" ");
-  time_on_site = parseInt(previous_time[0]);
-  update_expected_departure_time(expected_time, time_on_site);
+  //   const expected_time = url.get("expected_time");
+  //   let time_on_site = url.get("time_on_site");
+  // edit by spencer - two lines above are existing code which expect values to be passed as query params
+  // getting current values for expected time and time on site from DB
+  let time_values_action_url =
+    instance_url +
+    `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&form_id=${form_id}&field_ids=1760,1769`;
+  update_time_values(time_values_action_url);
 
   //code to display only associated contractor job
   show_contractor_job(parent_id);
@@ -89,6 +101,69 @@ else if (form_id == 11) {
   show_contractor_job(parent_id);
   //hide info and reporting tab
   hide_tabs();
+}
+
+function update_departure_time() {
+  let arrival_on_site = document.querySelector("#fields_1762");
+}
+
+function update_time_values(url) {
+  $.ajax({
+    url: url,
+    type: "GET",
+    success: function (response) {
+      console.log(response);
+      let time_values = JSON.parse(response);
+      console.log(time_values);
+      let expected_timestamp = time_values[1769];
+      let expected_time = format_timestamp(expected_timestamp);
+
+      let time_on_site = time_values[1760];
+      // let previous_time = time_on_site.split(" ");
+      // time_on_site = parseInt( time_on_site );
+      update_expected_departure_time(
+        expected_time,
+        time_on_site,
+        expected_timestamp
+      );
+    },
+    error: function (error) {
+      console.log(error);
+    },
+  });
+}
+
+function format_timestamp(seconds) {
+  const dtFormat = new Intl.DateTimeFormat("en-NZ", {
+    timeStyle: "medium",
+    timeZone: "Pacific/Auckland",
+  });
+
+  return dtFormat.format(new Date(seconds * 1e3));
+}
+
+function check_status(url, redirect_url) {
+  console.log(url);
+  console.log(redirect_url);
+  $.ajax({
+    url: url,
+    type: "GET",
+    success: function (response) {
+      console.log(response);
+      if (response == 763) {
+        // alert (redirect_url);
+        window.location.href = redirect_url;
+      }
+    },
+    error: function (error) {
+      console.log(error);
+    },
+  });
+}
+
+function sign_out_from_update_form(sign_out_url) {
+  console.log("sign out on update form " + sign_out_url);
+  window.location.href = sign_out_url;
 }
 
 function hide_tabs() {
@@ -281,15 +356,17 @@ function disable_arrival_on_site() {
 }
 
 function display_expected_departure_time(previous_expected_time) {
+  if (previous_expected_time) {
+    let planned_time = previous_expected_time.split(" ");
+    previous_expected_time = planned_time[0];
+  }
+
   let timer; // Timer identifier
   const waitTime = 500;
   const input = document.querySelector("#fields_1760");
   const input_parent = document.querySelector("#fields_1760_rendered_value");
   var newEl = document.createElement("h4");
   newEl.style.fontWeight = "600";
-
-  newEl.innerHTML = "Expected Departure Time: " + previous_expected_time;
-  input_parent.append(newEl);
 
   const departure_time = (hours) => {
     var expected_time = get_expected_time(hours);
@@ -299,6 +376,10 @@ function display_expected_departure_time(previous_expected_time) {
       newEl.innerHTML = "Expected Departure Time: " + previous_expected_time;
     }
   };
+
+  //newEl.innerHTML = "Expected Departure Time: " + previous_expected_time;
+  input_parent.append(newEl);
+  departure_time(previous_expected_time);
 
   // Listen for `keyup` event
   input.addEventListener("keyup", (e) => {
@@ -312,7 +393,11 @@ function display_expected_departure_time(previous_expected_time) {
   });
 }
 
-function update_expected_departure_time(previous_expected_time, time_on_site) {
+function update_expected_departure_time(
+  previous_expected_time,
+  time_on_site,
+  expected_timestamp
+) {
   let timer; // Timer identifier
   const waitTime = 500;
 
@@ -329,10 +414,13 @@ function update_expected_departure_time(previous_expected_time, time_on_site) {
   input_parent.append(newEl);
 
   const departure_time = (hours) => {
-    var expected_time = get_updated_time(hours, previous_expected_time);
+    //var expected_time = get_updated_time(hours, previous_expected_time);
+    var expected_time = get_updated_time_timestamp(hours, expected_timestamp);
+
     if (hours > 0 || hours != "") {
       newEl.innerHTML = "Expected Departure Time: " + expected_time;
-      hours = parseInt(hours);
+      hours = parseFloat(hours);
+      time_on_site = parseFloat(time_on_site);
       previous_time.value = hours + time_on_site;
     } else {
       newEl.innerHTML = "Expected Departure Time: " + previous_expected_time;
@@ -357,12 +445,9 @@ function get_expected_time(hours) {
   let ms = today.getTime();
   ms += hours * 3600 * 1000;
   var date_new = new Date(ms);
-  var new_date =
-    date_new.getHours() +
-    ":" +
-    date_new.getMinutes() +
-    ":" +
-    date_new.getSeconds();
+  var new_date = date_new.getHours() + ":" + date_new.getMinutes();
+  // ":" +
+  // date_new.getSeconds();
   return new_date;
 }
 
@@ -376,6 +461,15 @@ function get_updated_time(hours, previous_expected_time) {
   let ms = Date.parse(date);
   ms += hours * 3600 * 1000;
   date_new = new Date(ms);
+  let new_date = date_new.getHours() + ":" + date_new.getMinutes();
+  return new_date;
+}
+
+function get_updated_time_timestamp(hours, expected_timestamp) {
+  let ms = expected_timestamp * 1000;
+  ms += hours * 3600 * 1000;
+  date_new = new Date(ms);
+  //alert(date_new);
   let new_date = date_new.getHours() + ":" + date_new.getMinutes();
   return new_date;
 }
@@ -503,28 +597,6 @@ function hide_visit_site_again() {
   });
 }
 
-function check_status(url, redirect_url) {
-  $.ajax({
-    url: url,
-    type: "GET",
-    success: function (response) {
-      console.log(response);
-      if (response == 763) {
-        // alert(redirect_url);
-        window.location.href = redirect_url;
-      }
-    },
-    error: function (error) {
-      console.log(error);
-    },
-  });
-}
-function sign_out_from_update_form(ele) {
-  console.log("sign out on update form");
-  $("#public_form").submit(function (e) {
-    e.preventDefault();
-  });
-}
 function get_instance_url() {
   return (
     window.location.protocol +
