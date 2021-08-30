@@ -9,14 +9,20 @@ const technician_id = url.get("technician_id");
 const token = document.getElementById("form_session_token").value;
 const instance_url = get_instance_url();
 let action_url;
-//code to display only associated contractor job
-show_contractor_job(parent_id);
-
-//hide info and reporting tab
-hide_tabs();
 
 //sign in form
 if (form_id == 9) {
+  //check status and redirect if applicable
+  let check_status_url =
+    instance_url +
+    "?module=antevasin/unicloud/public_process&action=get_value&item=77-155&token=fZIQPKK39S&field_id=1768";
+  let location = url.get("location");
+  let redirect_url =
+    instance_url +
+    `?module=ext/public/form&id=10&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${location}&path=${form_path}/77-${technician_id}`;
+  console.log(redirect_url);
+  let status = check_status(check_status_url, redirect_url);
+
   const action_url =
     instance_url +
     `?module=antevasin/unicloud/public_process&action=run&id=143&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
@@ -29,6 +35,11 @@ if (form_id == 9) {
   unicloud_module_technician_activity();
   const reporting_tab = document.querySelectorAll(".form_tab_136");
   reporting_tab[0].style.display = "none";
+
+  //code to display only associated contractor job
+  show_contractor_job(parent_id);
+  //hide info and reporting tab
+  hide_tabs();
 }
 
 //update form
@@ -37,7 +48,10 @@ else if (form_id == 10) {
     instance_url +
     `?module=antevasin/unicloud/public_process&action=run&id=145&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
   console.log("URL: " + action_url);
-
+  // add Sign Out button
+  $(".btn-primary").after(
+    '<button onclick="sign_out_from_update_form( this )" class="btn btn-secondary">SIGN OUT</button>'
+  );
   //change action url of public form
   const public_form = document.getElementById("public_form");
   public_form.action = action_url;
@@ -47,6 +61,11 @@ else if (form_id == 10) {
   let previous_time = time_on_site.split(" ");
   time_on_site = parseInt(previous_time[0]);
   update_expected_departure_time(expected_time, time_on_site);
+
+  //code to display only associated contractor job
+  show_contractor_job(parent_id);
+  //hide info and reporting tab
+  hide_tabs();
 }
 
 //sign out form
@@ -65,6 +84,11 @@ else if (form_id == 11) {
   hide_visit_site_again();
   const reporting_tab = document.querySelectorAll(".form_tab_136");
   reporting_tab[0].style.display = "none";
+
+  //code to display only associated contractor job
+  show_contractor_job(parent_id);
+  //hide info and reporting tab
+  hide_tabs();
 }
 
 function hide_tabs() {
@@ -442,6 +466,11 @@ function departure_location() {
 }
 
 function hide_visit_site_again() {
+  //automate action sign out
+  if (!technician_id) {
+    action_url = document.querySelector("#process").action;
+    //alert(action_url);
+  }
   const dropdown = document.querySelector("#fields_1901");
   const visit_site = document.querySelector(".form-group-1902");
   visit_site.style.display = "none";
@@ -474,6 +503,28 @@ function hide_visit_site_again() {
   });
 }
 
+function check_status(url, redirect_url) {
+  $.ajax({
+    url: url,
+    type: "GET",
+    success: function (response) {
+      console.log(response);
+      if (response == 763) {
+        // alert(redirect_url);
+        window.location.href = redirect_url;
+      }
+    },
+    error: function (error) {
+      console.log(error);
+    },
+  });
+}
+function sign_out_from_update_form(ele) {
+  console.log("sign out on update form");
+  $("#public_form").submit(function (e) {
+    e.preventDefault();
+  });
+}
 function get_instance_url() {
   return (
     window.location.protocol +
