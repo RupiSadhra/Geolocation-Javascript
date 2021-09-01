@@ -1,5 +1,3 @@
-//window.onload = function () {
-
 const path = window.location.href;
 const url = new URLSearchParams(path);
 const parent_id = url.get("parent_item_id");
@@ -117,10 +115,7 @@ function update_time_values(url) {
       console.log(time_values);
       let expected_timestamp = time_values[1769];
       let expected_time = format_timestamp(expected_timestamp);
-
       let time_on_site = time_values[1760];
-      // let previous_time = time_on_site.split(" ");
-      // time_on_site = parseInt( time_on_site );
       update_expected_departure_time(
         expected_time,
         time_on_site,
@@ -172,19 +167,46 @@ function hide_tabs() {
 }
 
 function unicloud_module_technician_activity() {
-  //get id of current contractor job and location coordinates
+  let siteLatitude, siteLongitude, location;
+  const url = `https://projects.unicloud.co.nz/fmdemo-dev/index.php?module=antevasin/unicloud/public_process&action=get_field_values&item=34-6887&token=${token}&field_ids=401,1552,1910`;
+  // ajax call to get coordinates
 
-  const location = url.get("location");
-  console.log(location);
-  let startIndex = location.indexOf("]");
-  startIndex++;
-  const coordinates = location.substring(startIndex, location.indexOf("("));
-  let lastIndex = coordinates.indexOf(",");
-  lastIndex++;
-  //alert(coordinates);
-  const siteLatitude = location.substring(startIndex, location.indexOf(","));
-  const siteLongitude = coordinates.substring(lastIndex);
-  //alert(siteLatitude+"  "+siteLongitude);
+  $.ajax({
+    url: url,
+    type: "GET",
+    success: function (response) {
+      let data = JSON.parse(response);
+      console.log(response);
+      if (data[1910]) {
+        location = data[1552];
+        const coordinates = location.split(",");
+        siteLatitude = coordinates[0];
+        siteLongitude = coordinates[1];
+        alert("google " + siteLatitude + "  " + siteLongitude);
+      } else {
+        location = data[401];
+        let startIndexLat = location.indexOf("]");
+        startIndexLat++;
+
+        let startIndexLong = location.indexOf(",");
+        startIndexLong++;
+
+        let lastIndexLong =
+          location.indexOf("(") == -1
+            ? location.lastIndexOf("[")
+            : location.indexOf("(");
+
+        //alert(coordinates);
+        siteLatitude = location.substring(startIndexLat, location.indexOf(","));
+        siteLongitude = location.substring(startIndexLong, lastIndexLong);
+        alert("pin " + siteLatitude + "  " + siteLongitude);
+      }
+    },
+    error: function (error) {
+      console.log(error);
+    },
+  });
+
   const button = document.querySelector('button[type="submit"]');
   const button_message = document.getElementById("form-error-container");
   const sign_in = document.querySelector('button[type="submit"]');
@@ -277,33 +299,35 @@ function deg2rad(deg) {
 }
 
 function show_contractor_job(parent_id) {
-  let job;
-  const options = document.querySelectorAll("#parent_item_id option");
-  const dropdown = document.querySelectorAll(".chosen-container");
-  //const form=document.querySelectorAll('.form-group-parent-item-id .col-md-9');
-  const label = document.querySelectorAll(
-    ".form-group-parent-item-id .col-md-3"
-  );
-  const form = document.querySelectorAll(".form-group-parent-item-id");
-  let index = 1;
-  options.forEach(function (option) {
-    //console.log(option.value);
-    if (option.value == parent_id) {
-      job = option.text;
-    }
-    index++;
-  });
-  dropdown[0].style.display = "none";
-  label[0].style.display = "none";
-  let job_index = job.lastIndexOf("/");
-  job_index++;
-  const job_name = job.substring(job_index);
-  console.log(job_name);
+  window.onload = function () {
+    let job;
+    const options = document.querySelectorAll("#parent_item_id option");
+    const dropdown = document.querySelectorAll(".chosen-container");
+    //const form=document.querySelectorAll('.form-group-parent-item-id .col-md-9');
+    const label = document.querySelectorAll(
+      ".form-group-parent-item-id .col-md-3"
+    );
+    const form = document.querySelectorAll(".form-group-parent-item-id");
+    let index = 1;
+    options.forEach(function (option) {
+      //console.log(option.value);
+      if (option.value == parent_id) {
+        job = option.text;
+      }
+      index++;
+    });
+    dropdown[0].style.display = "none";
+    label[0].style.display = "none";
+    let job_index = job.lastIndexOf("/");
+    job_index++;
+    const job_name = job.substring(job_index);
+    console.log(job_name);
 
-  var newEl = document.createElement("h4");
-  newEl.innerHTML = job_name;
-  newEl.style.marginLeft = "20px";
-  form[0].append(newEl);
+    var newEl = document.createElement("h4");
+    newEl.innerHTML = job_name;
+    newEl.style.marginLeft = "20px";
+    form[0].append(newEl);
+  };
 }
 
 function disable_arrival_on_site() {
@@ -578,13 +602,23 @@ function hide_visit_site_again() {
       const submit_button = document.querySelector('button[type="submit"]');
       submit_button.addEventListener("click", function (e) {
         e.preventDefault();
-
+        let clear_fields =
+          "1759,1760,1762,1763,1764,1765,1766,1769,1771,1772,1773,1838,1850,1901,1903,1906,1907";
+        let set_fields = "1768=762";
+        let copy_record_url =
+          instance_url +
+          `?module=antevasin/unicloud/public_process&action=copy&token=${token}&item=77-${technician_id}&clear_fields=${clear_fields}&set_fields=${set_fields}`;
         $.ajax({
-          url: action_url,
-          data: $("form").serialize(),
-          type: "POST",
+          url: copy_record_url,
+          type: "GET",
           success: function (response) {
-            alert("Signed out... second request to add new record");
+            let response_obj = JSON.parse(response);
+            if (response_obj.hasOwnProperty("success")) {
+              // console.log( 'success' );
+              $("#public_form").submit();
+            } else if (response_obj.hasOwnProperty("error")) {
+              console.log(response_obj.error);
+            }
           },
           error: function (error) {
             console.log(error);
@@ -605,4 +639,3 @@ function get_instance_url() {
     window.location.pathname
   );
 }
-//};
