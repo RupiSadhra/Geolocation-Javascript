@@ -1,5 +1,3 @@
-//public form elements
-
 //get_technician_activity() arguments
 const arrival_location = document.querySelector("#fields_1759");
 const arrival_form = document.querySelector(".form-group-1759");
@@ -50,27 +48,30 @@ const technician_id = url.get("technician_id");
 const token = document.getElementById("form_session_token").value;
 const instance_url = get_instance_url();
 const form_id = url.get("id");
-let action_url;
-
-//get site id
 const full_path = form_path.split("/");
-const site_path = full_path[2];
+const site_id = full_path[2];
+const technician_entity_path = full_path[4];
+const technician_entity = technician_entity_path.split("-")[0];
+let action_url;
 
 //sign in form
 if (form_id == 9) {
   //check status and redirect if applicable
   let check_status_url =
     instance_url +
-    `?module=antevasin/unicloud/public_process&action=get_value&item=77-${technician_id}&token=${token}&field_id=1768`;
+    `?module=antevasin/unicloud/public_process&action=get_value&item=${technician_entity}-${technician_id}&token=${token}&field_id=1768`;
+
   let location = url.get("location");
+
   let redirect_url =
     instance_url +
-    `?module=ext/public/form&id=10&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${location}&path=${form_path}/77-${technician_id}`;
+    `?module=ext/public/form&id=10&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${location}&path=${form_path}`;
+
   let status = check_status(check_status_url, redirect_url);
 
   const action_url =
     instance_url +
-    `?module=antevasin/unicloud/public_process&action=run&id=143&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
+    `?module=antevasin/unicloud/public_process&action=run&id=143&path=${form_path}&token=${token}&form_id=${form_id}`;
 
   //change action url of public form
   const public_form = document.getElementById("public_form");
@@ -112,8 +113,9 @@ if (form_id == 9) {
 else if (form_id == 10) {
   const action_url =
     instance_url +
-    `?module=antevasin/unicloud/public_process&action=run&id=145&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
+    `?module=antevasin/unicloud/public_process&action=run&id=145&path=${form_path}&token=${token}&form_id=${form_id}`;
   console.log("URL: " + action_url);
+
   // add Sign Out button
   let location = url.get("location");
   let sign_out_action_url =
@@ -121,7 +123,7 @@ else if (form_id == 10) {
     `?module=ext/public/form&id=11&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${location}&path=${form_path}&token=${token}`;
   let sign_out_button_html = `<button type="button" onclick="sign_out_from_update_form( '${sign_out_action_url}' )" class="btn btn-primary">Sign Out</button>`;
   $(".btn-primary").after(sign_out_button_html);
-  //change action url of public form
+
   const public_form = document.getElementById("public_form");
   public_form.action = action_url;
 
@@ -132,9 +134,8 @@ else if (form_id == 10) {
 
   update_time_values(time_values_action_url);
 
-  //code to display only associated contractor job
   show_contractor_job(parent_id);
-  //hide info and reporting tab
+
   hide_tabs();
 }
 
@@ -142,10 +143,9 @@ else if (form_id == 10) {
 else if (form_id == 11) {
   action_url =
     instance_url +
-    `?module=antevasin/unicloud/public_process&action=run&id=144&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
+    `?module=antevasin/unicloud/public_process&action=run&id=144&path=${form_path}&token=${token}&form_id=${form_id}`;
   console.log("URL: " + action_url);
 
-  //change action url of public form
   const public_form = document.getElementById("public_form");
   public_form.action = action_url;
 
@@ -156,12 +156,13 @@ else if (form_id == 11) {
     override_site_departure_reason_form,
     override_site_departure_reason
   );
+
   departure_location(departure_location_form, departure_location_field);
+
   hide_visit_site_again(visit_site_dropdown, visit_site);
 
-  //code to display only associated contractor job
   show_contractor_job(parent_id);
-  //hide info and reporting tab
+
   hide_tabs();
   const reporting_tab = document.querySelectorAll(".form_tab_136");
   reporting_tab[0].style.display = "none";
@@ -244,7 +245,7 @@ function get_technician_activity(
 ) {
   let siteLatitude, siteLongitude, location;
 
-  const url = `https://projects.unicloud.co.nz/fmdemo-dev/index.php?module=antevasin/unicloud/public_process&action=get_field_values&item=${site_path}&token=${token}&field_ids=401,1552,1910`;
+  const url = `https://projects.unicloud.co.nz/fmdemo-dev/index.php?module=antevasin/unicloud/public_process&action=get_field_values&item=${site_id}&token=${token}&field_ids=401,1552,1910`;
   // ajax call to get coordinates
 
   $.ajax({
@@ -325,12 +326,9 @@ function get_technician_activity(
     );
   } else {
     console.log("Geolocation is not supported for this Browser/OS.");
-  }
-
-  // end of window onload function
+  } // end of window onload function
 
   //hides or shows the geolocation override reason textarea
-
   override_location.style.display = "none";
 
   override_location_dropdown.addEventListener("change", function () {
@@ -414,11 +412,9 @@ function disable_arrival_on_site(
   const dateTime = date + " " + time;
 
   //sets default value for arrival on site
-
   arrival_on_site.value = dateTime;
 
   //actual arrival on site reporting tab
-
   actual_arrival_on_site.value = dateTime;
 
   arrival_on_site.readOnly = true;
@@ -429,13 +425,10 @@ function disable_arrival_on_site(
   dateset[0].disabled = true;
 
   //hides or shows the arrival on site textarea
-
-  var value;
-
   override_time_reason.style.display = "none";
 
   override_arrival_time_dropdown.addEventListener("change", function () {
-    value = override_arrival_time_dropdown.value;
+    var value = override_arrival_time_dropdown.value;
 
     if (value == 785) {
       override_time_reason.style.display = "none";
@@ -450,6 +443,7 @@ function disable_arrival_on_site(
       dateset[0].disabled = false;
     }
   });
+
   arrival_on_site.addEventListener("focus", function () {
     document.querySelector(".datetimepicker").style.display = "none";
   });
@@ -577,7 +571,6 @@ function get_updated_time_timestamp(hours, expected_timestamp) {
   return new_date;
 }
 
-//sign out form
 //disable site departure
 
 function disable_site_departure(
@@ -595,23 +588,18 @@ function disable_site_departure(
   const dateTime = date + " " + time;
 
   //sets default value for site departure
-
   departure_on_site.value = dateTime;
   departure_on_site.readOnly = true;
 
   //actual site departure reporting tab
-
   actual_site_departure.value = dateTime;
 
   //hides the calendar button
   const dateset = document.querySelectorAll(".date-set");
   dateset[0].style.display = "none";
-  // dateset[0].disabled = true;
 
   //hides or shows the arrival on site textarea
-
   override_site_departure_reason_form.style.display = "none";
-  //$(".form-group-1906").css("display", "none");
 
   override_site_departure.addEventListener("change", function () {
     var value = override_site_departure.value;
@@ -630,6 +618,7 @@ function disable_site_departure(
       override_site_departure_reason.required = "true";
     }
   });
+
   departure_on_site.addEventListener("focus", function () {
     document.querySelector(".datetimepicker").style.display = "none";
   });
@@ -637,11 +626,9 @@ function disable_site_departure(
 
 function departure_location(departure_location_form, departure_location_field) {
   //hide departue location
-
   departure_location_form.style.display = "none";
 
   //capture departure location
-
   window.onload = function () {
     if (navigator.geolocation) {
       //console.log('Geolocation is supported!');
