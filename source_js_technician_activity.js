@@ -1,3 +1,10 @@
+$.getScript("https://source.unicloud.co.nz/js/functions.js", function () {
+  //helper functions
+  get_instance_url();
+});
+
+let instance_url = get_instance_url();
+
 //get_technician_activity() arguments
 const arrival_location = document.querySelector("#fields_1759");
 const arrival_form = document.querySelector(".form-group-1759");
@@ -46,32 +53,30 @@ const parent_id = url.get("parent_item_id");
 const form_path = url.get("path");
 const technician_id = url.get("technician_id");
 const token = document.getElementById("form_session_token").value;
-const instance_url = get_instance_url();
 const form_id = url.get("id");
 const full_path = form_path.split("/");
 const site_id = full_path[2];
-const technician_entity_path = full_path[4];
-const technician_entity = technician_entity_path.split("-")[0];
+//const technician_entity_path = full_path[4];
+//const technician_entity = technician_entity_path.split('-')[0];
 let action_url;
+
+//loader
 
 //sign in form
 if (form_id == 9) {
   //check status and redirect if applicable
   let check_status_url =
     instance_url +
-    `?module=antevasin/unicloud/public_process&action=get_value&item=${technician_entity}-${technician_id}&token=${token}&field_id=1768`;
-
+    `?module=antevasin/unicloud/public_process&action=get_value&item=77-${technician_id}&token=${token}&field_id=1768`;
   let location = url.get("location");
-
   let redirect_url =
     instance_url +
-    `?module=ext/public/form&id=10&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${location}&path=${form_path}`;
-
+    `?module=ext/public/form&id=10&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${location}&path=${form_path}/77-${technician_id}`;
   let status = check_status(check_status_url, redirect_url);
 
   const action_url =
     instance_url +
-    `?module=antevasin/unicloud/public_process&action=run&id=143&path=${form_path}&token=${token}&form_id=${form_id}`;
+    `?module=antevasin/unicloud/public_process&action=run&id=143&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
 
   //change action url of public form
   const public_form = document.getElementById("public_form");
@@ -107,15 +112,16 @@ if (form_id == 9) {
   hide_tabs();
   const reporting_tab = document.querySelectorAll(".form_tab_136");
   reporting_tab[0].style.display = "none";
+
+  display_loader();
 }
 
 //update form
 else if (form_id == 10) {
   const action_url =
     instance_url +
-    `?module=antevasin/unicloud/public_process&action=run&id=145&path=${form_path}&token=${token}&form_id=${form_id}`;
+    `?module=antevasin/unicloud/public_process&action=run&id=145&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
   console.log("URL: " + action_url);
-
   // add Sign Out button
   let location = url.get("location");
   let sign_out_action_url =
@@ -123,7 +129,7 @@ else if (form_id == 10) {
     `?module=ext/public/form&id=11&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${location}&path=${form_path}&token=${token}`;
   let sign_out_button_html = `<button type="button" onclick="sign_out_from_update_form( '${sign_out_action_url}' )" class="btn btn-primary">Sign Out</button>`;
   $(".btn-primary").after(sign_out_button_html);
-
+  //change action url of public form
   const public_form = document.getElementById("public_form");
   public_form.action = action_url;
 
@@ -134,18 +140,21 @@ else if (form_id == 10) {
 
   update_time_values(time_values_action_url);
 
+  //code to display only associated contractor job
   show_contractor_job(parent_id);
-
+  //hide info and reporting tab
   hide_tabs();
+  display_loader();
 }
 
 //sign out form
 else if (form_id == 11) {
   action_url =
     instance_url +
-    `?module=antevasin/unicloud/public_process&action=run&id=144&path=${form_path}&token=${token}&form_id=${form_id}`;
+    `?module=antevasin/unicloud/public_process&action=run&id=144&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
   console.log("URL: " + action_url);
 
+  //change action url of public form
   const public_form = document.getElementById("public_form");
   public_form.action = action_url;
 
@@ -156,16 +165,16 @@ else if (form_id == 11) {
     override_site_departure_reason_form,
     override_site_departure_reason
   );
-
   departure_location(departure_location_form, departure_location_field);
-
   hide_visit_site_again(visit_site_dropdown, visit_site);
 
+  //code to display only associated contractor job
   show_contractor_job(parent_id);
-
+  //hide info and reporting tab
   hide_tabs();
   const reporting_tab = document.querySelectorAll(".form_tab_136");
   reporting_tab[0].style.display = "none";
+  display_loader();
 }
 
 function update_departure_time() {
@@ -407,8 +416,7 @@ function disable_arrival_on_site(
   let today = new Date();
   const date =
     today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate();
-  const time =
-    today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+  const time = today.getHours() + ":" + today.getMinutes();
   const dateTime = date + " " + time;
 
   //sets default value for arrival on site
@@ -470,7 +478,7 @@ function display_expected_departure_time(
     if (hours > 0 || hours != "") {
       newEl.innerHTML = "Expected Departure Time: " + expected_time;
     } else {
-      newEl.innerHTML = "Expected Departure Time: " + previous_expected_time;
+      newEl.innerHTML = "Expected Departure Time: ";
     }
   };
 
@@ -699,6 +707,40 @@ function hide_visit_site_again(visit_site_dropdown, visit_site) {
       visit_site.style.display = "none";
     }
   });
+}
+
+function display_loader() {
+  const loader = document.createElement("div");
+  const form = document.querySelector(".content-form");
+  const copyright = document.querySelector(".copyright");
+  document.body.appendChild(loader);
+  loader.style.cssText = `
+      position : fixed;
+      top : 0;
+      left : 0;
+      width : 100%;
+      height : 100%;
+      z-index : 9999;
+      background : url(../images/loading.gif);
+      background-position : center;
+      background-size : 30px 30px;
+      background-repeat : no-repeat;
+    `;
+
+  document.querySelector("body").style.cssText = `
+      width:100%;
+      min-height:100vh;
+      display : flex;
+      justify-content : center;
+      align-items : center;
+      flex-direction: column;
+    `;
+
+  setTimeout(function () {
+    loader.style.display = "none";
+    form.style.display = "block";
+    copyright.style.display = "block";
+  }, 1500);
 }
 
 function get_instance_url() {
