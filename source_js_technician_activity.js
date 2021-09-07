@@ -379,24 +379,18 @@ function get_technician_activity(
       (error) => {
         console.log("Geolocation error: " + error.message);
         button.disabled = true;
-        button_message.innerText = `Turn on the location and refresh the page to Sign In!`;
+        button_message.innerHTML = `Turn on the location <a target="_blank" href="https://www.unicloud.co.nz/Manuals/Users/Location-Settings.html">(click here for instructions)</a> and refresh the page to Sign In!`;
 
         override_location_dropdown.addEventListener("change", function () {
           override_location.style.display = "none";
           button.disabled = true;
-          button_message.innerText =
-            "Turn on the location and refresh the page to Sign In!";
+          button_message.innerHTML = `Turn on the location <a target="_blank" href="https://www.unicloud.co.nz/Manuals/Users/Location-Settings.html">(click here for instructions)</a> and refresh the page to Sign In!`;
         });
 
-        //add location settings link
-        const location_settings = document.createElement("a");
-        location_settings.classList.add("btn");
-        location_settings.classList.add("btn-primary");
-        location_settings.innerText = "Find location settings";
-        location_settings.target = "_blank";
-        location_settings.href =
-          "https://docs.buddypunch.com/en/articles/919258-how-to-enable-location-services-for-chrome-safari-edge-and-android-ios-devices-gps-setting";
-        document.querySelector(".modal-footer").append(location_settings);
+        button_message.style.cssText = `
+              margin: 1rem auto;
+              font-size: 1.5rem;
+              text-align:center; `;
       }
     );
   } else {
