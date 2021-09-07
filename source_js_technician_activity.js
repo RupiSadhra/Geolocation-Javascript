@@ -387,6 +387,16 @@ function get_technician_activity(
           button_message.innerText =
             "Turn on the location and refresh the page to Sign In!";
         });
+
+        //add location settings link
+        const location_settings = document.createElement("a");
+        location_settings.classList.add("btn");
+        location_settings.classList.add("btn-primary");
+        location_settings.innerText = "Find location settings";
+        location_settings.target = "_blank";
+        location_settings.href =
+          "https://docs.buddypunch.com/en/articles/919258-how-to-enable-location-services-for-chrome-safari-edge-and-android-ios-devices-gps-setting";
+        document.querySelector(".modal-footer").append(location_settings);
       }
     );
   } else {
