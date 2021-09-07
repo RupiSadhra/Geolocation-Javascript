@@ -2,6 +2,9 @@ $.getScript("https://source.unicloud.co.nz/js/functions.js", function () {
   //helper functions
   get_instance_url();
 });
+//console.log('in public form');
+// hide the form while we set up the form
+$("#public_form").hide();
 
 let instance_url = get_instance_url();
 
@@ -54,6 +57,8 @@ const form_path = url.get("path");
 const technician_id = url.get("technician_id");
 const token = document.getElementById("form_session_token").value;
 const form_id = url.get("id");
+const map_location = url.get("location");
+
 const full_path = form_path.split("/");
 const site_id = full_path[2];
 //const technician_entity_path = full_path[4];
@@ -68,11 +73,10 @@ if (form_id == 9) {
   let check_status_url =
     instance_url +
     `?module=antevasin/unicloud/public_process&action=get_value&item=77-${technician_id}&token=${token}&field_id=1768`;
-  let location = url.get("location");
   let redirect_url =
     instance_url +
-    `?module=ext/public/form&id=10&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${location}&path=${form_path}/77-${technician_id}`;
-  let status = check_status(check_status_url, redirect_url);
+    `?module=ext/public/form&id=10&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${map_location}&path=${form_path}/77-${technician_id}`;
+  check_status(check_status_url, redirect_url, 762, false);
 
   const action_url =
     instance_url +
@@ -118,15 +122,17 @@ if (form_id == 9) {
 
 //update form
 else if (form_id == 10) {
+  //check if signed out and redirect if applicable
+  check_if_signed_out();
+
   const action_url =
     instance_url +
     `?module=antevasin/unicloud/public_process&action=run&id=145&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
   console.log("URL: " + action_url);
   // add Sign Out button
-  let location = url.get("location");
   let sign_out_action_url =
     instance_url +
-    `?module=ext/public/form&id=11&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${location}&path=${form_path}&token=${token}`;
+    `?module=ext/public/form&id=11&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${map_location}&path=${form_path}&token=${token}`;
   let sign_out_button_html = `<button type="button" onclick="sign_out_from_update_form( '${sign_out_action_url}' )" class="btn btn-primary">Sign Out</button>`;
   $(".btn-primary").after(sign_out_button_html);
   //change action url of public form
@@ -149,6 +155,9 @@ else if (form_id == 10) {
 
 //sign out form
 else if (form_id == 11) {
+  //check if signed out and redirect if applicable
+  check_if_signed_out();
+
   action_url =
     instance_url +
     `?module=antevasin/unicloud/public_process&action=run&id=144&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
@@ -180,6 +189,8 @@ else if (form_id == 11) {
 function update_departure_time() {
   let arrival_on_site = document.querySelector("#fields_1762");
 }
+// finish up by showing the form again
+$("#public_form").show();
 
 function update_time_values(url) {
   $.ajax({
@@ -217,7 +228,7 @@ function format_timestamp(seconds) {
   return dtFormat.format(new Date(seconds * 1e3));
 }
 
-function check_status(url, redirect_url) {
+function check_status(url, redirect_url, status, state) {
   console.log(url);
   console.log(redirect_url);
   $.ajax({
@@ -225,15 +236,31 @@ function check_status(url, redirect_url) {
     type: "GET",
     success: function (response) {
       console.log(response);
-      if (response == 763) {
-        // alert (redirect_url);
-        window.location.href = redirect_url;
+      if (state) {
+        if (response == status) {
+          window.location.href = redirect_url;
+        }
+      } else {
+        if (response != status) {
+          window.location.href = redirect_url;
+        }
       }
     },
     error: function (error) {
       console.log(error);
     },
   });
+}
+
+function check_if_signed_out() {
+  //check status and redirect if applicable
+  let check_status_url =
+    instance_url +
+    `?module=antevasin/unicloud/public_process&action=get_value&item=77-${technician_id}&token=${token}&field_id=1768`;
+  let redirect_url =
+    instance_url +
+    `?module=ext/public/form&action=success&id=11&token=${token}`;
+  check_status(check_status_url, redirect_url, 764, true);
 }
 
 function sign_out_from_update_form(sign_out_url) {
@@ -295,8 +322,11 @@ function get_technician_activity(
 
   const button = document.querySelector('button[type="submit"]');
   const button_message = document.getElementById("form-error-container");
-  //const sign_in = document.querySelector('button[type="submit"]');
+  button.disabled = true;
+  button_message.innerText = `Set 'Know your location' to allow to Sign In!`;
   arrival_form.style.display = "none";
+  //hides or shows the geolocation override reason textarea
+  override_location.style.display = "none";
 
   if (navigator.geolocation) {
     //console.log('Geolocation is supported!');
@@ -328,31 +358,40 @@ function get_technician_activity(
           button.disabled = false;
           button_message.innerText = "";
         }
+
+        override_location_dropdown.addEventListener("change", function () {
+          let value = override_location_dropdown.value;
+
+          if (value == 760 && distance > 1) {
+            override_location.style.display = "none";
+            button.disabled = true;
+            button_message.innerText =
+              "Sign In disabled due to distance from site!";
+          } else if (value == 760 && distance < 1) {
+            override_location.style.display = "none";
+          } else {
+            override_location.style.display = "block";
+            button.disabled = false;
+            button_message.innerText = "";
+          }
+        });
       },
       (error) => {
-        console.log(error.message);
+        console.log("Geolocation error: " + error.message);
+        button.disabled = true;
+        button_message.innerText = `Turn on the location and refresh the page to Sign In!`;
+
+        override_location_dropdown.addEventListener("change", function () {
+          override_location.style.display = "none";
+          button.disabled = true;
+          button_message.innerText =
+            "Turn on the location and refresh the page to Sign In!";
+        });
       }
     );
   } else {
     console.log("Geolocation is not supported for this Browser/OS.");
   } // end of window onload function
-
-  //hides or shows the geolocation override reason textarea
-  override_location.style.display = "none";
-
-  override_location_dropdown.addEventListener("change", function () {
-    let value = override_location_dropdown.value;
-
-    if (value == 760) {
-      override_location.style.display = "none";
-      button.disabled = true;
-      button_message.innerText = "Sign In disabled due to distance from site!";
-    } else {
-      override_location.style.display = "block";
-      button.disabled = false;
-      button_message.innerText = "";
-    }
-  });
 }
 
 function find_distance(lat1, lon1, lat2, lon2) {
@@ -434,6 +473,7 @@ function disable_arrival_on_site(
 
   //hides or shows the arrival on site textarea
   override_time_reason.style.display = "none";
+  $(override_time_reason).find(".required").removeClass("required");
 
   override_arrival_time_dropdown.addEventListener("change", function () {
     var value = override_arrival_time_dropdown.value;
@@ -682,7 +722,8 @@ function hide_visit_site_again(visit_site_dropdown, visit_site) {
         e.preventDefault();
         let clear_fields =
           "1759,1760,1762,1763,1764,1765,1766,1769,1771,1772,1773,1838,1850,1901,1903,1906,1907";
-        let set_fields = "1768=762";
+        let reason_to_visit_site_again = $("#fields_1902 :selected").val();
+        let set_fields = `1768=762,1902=${reason_to_visit_site_again}`;
         let copy_record_url =
           instance_url +
           `?module=antevasin/unicloud/public_process&action=copy&token=${token}&item=77-${technician_id}&clear_fields=${clear_fields}&set_fields=${set_fields}`;
