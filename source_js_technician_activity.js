@@ -2,9 +2,9 @@ $.getScript("https://source.unicloud.co.nz/js/functions.js", function () {
   //helper functions
   get_instance_url();
 });
-//console.log('in public form');
-// hide the form while we set up the form
-$("#public_form").hide();
+
+// hide the form while we set up the form - THIS IS NOW IN THE PUBLIC FORM JS TO IMPROVE UX
+// $(".content-form").hide();
 
 let instance_url = get_instance_url();
 
@@ -49,6 +49,12 @@ const departure_location_field = document.querySelector("#fields_1764");
 const visit_site_dropdown = document.querySelector("#fields_1901");
 const visit_site = document.querySelector(".form-group-1902");
 
+//update condition rating arguments
+const asset_rating = document.querySelector("#fields_1987");
+const asset_rating_chosen = document.querySelector("#fields_1987_chosen");
+const asset_rating_form = document.querySelector(".form-group-1987");
+//console.dir(asset_rating);
+
 //public form url values
 const path = window.location.href;
 const url = new URLSearchParams(path);
@@ -58,14 +64,12 @@ const technician_id = url.get("technician_id");
 const token = document.getElementById("form_session_token").value;
 const form_id = url.get("id");
 const map_location = url.get("location");
-
+const asset_id = url.get("asset");
 const full_path = form_path.split("/");
 const site_id = full_path[2];
 //const technician_entity_path = full_path[4];
 //const technician_entity = technician_entity_path.split('-')[0];
 let action_url;
-
-//loader
 
 //sign in form
 if (form_id == 9) {
@@ -145,6 +149,7 @@ else if (form_id == 10) {
     `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&form_id=${form_id}&field_ids=1760,1769`;
 
   update_time_values(time_values_action_url);
+  update_asset_rating(asset_rating, asset_rating_chosen, asset_rating_form);
 
   //code to display only associated contractor job
   show_contractor_job(parent_id);
@@ -176,7 +181,7 @@ else if (form_id == 11) {
   );
   departure_location(departure_location_form, departure_location_field);
   hide_visit_site_again(visit_site_dropdown, visit_site);
-
+  update_asset_rating(asset_rating, asset_rating_chosen, asset_rating_form);
   //code to display only associated contractor job
   show_contractor_job(parent_id);
   //hide info and reporting tab
@@ -190,7 +195,7 @@ function update_departure_time() {
   let arrival_on_site = document.querySelector("#fields_1762");
 }
 // finish up by showing the form again
-$("#public_form").show();
+$(".content-form").show();
 
 function update_time_values(url) {
   $.ajax({
@@ -235,7 +240,7 @@ function check_status(url, redirect_url, status, state) {
     url: url,
     type: "GET",
     success: function (response) {
-      console.log(response);
+      //console.log(response);
       if (state) {
         if (response == status) {
           window.location.href = redirect_url;
@@ -281,7 +286,7 @@ function get_technician_activity(
 ) {
   let siteLatitude, siteLongitude, location;
 
-  const url = `https://projects.unicloud.co.nz/fmdemo-dev/index.php?module=antevasin/unicloud/public_process&action=get_field_values&item=${site_id}&token=${token}&field_ids=401,1552,1910`;
+  const url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_field_values&item=${site_id}&token=${token}&field_ids=401,1552,1910`;
   // ajax call to get coordinates
 
   $.ajax({
@@ -314,6 +319,10 @@ function get_technician_activity(
         siteLongitude = location.substring(startIndexLong, lastIndexLong);
         //alert("pin " + siteLatitude + "  " + siteLongitude);
       }
+
+      //get directions google map
+      //alert('call directions');
+      get_directions_google_map(siteLatitude, siteLongitude);
     },
     error: function (error) {
       console.log(error);
@@ -396,6 +405,34 @@ function get_technician_activity(
   } else {
     console.log("Geolocation is not supported for this Browser/OS.");
   } // end of window onload function
+}
+
+function get_directions_google_map(siteLatitude, siteLongitude) {
+  //alert(siteLatitude+' '+siteLongitude);
+  //make a get directions button
+  const get_directions = document.createElement("a");
+  get_directions.classList.add("btn");
+  get_directions.classList.add("btn-success");
+  get_directions.innerText = "GET DIRECTIONS";
+  get_directions.target = "_blank";
+  document.querySelector(".modal-footer").append(get_directions);
+
+  get_directions.addEventListener("click", function () {
+    // console.log('location click');
+    if (
+      /* if we're on iOS, open in Apple Maps */
+      navigator.platform.indexOf("iPhone") != -1 ||
+      navigator.platform.indexOf("iPad") != -1 ||
+      navigator.platform.indexOf("iPod") != -1
+    )
+      window.open(
+        `maps://maps.google.com/maps?daddr=${siteLatitude},${siteLongitude}&amp;ll=`
+      );
+    /* else use Google */ else
+      window.open(
+        `https://maps.google.com/maps?daddr=${siteLatitude},${siteLongitude}&amp;ll=`
+      );
+  });
 }
 
 function find_distance(lat1, lon1, lat2, lon2) {
@@ -758,7 +795,7 @@ function display_loader() {
   const loader = document.createElement("div");
   const form = document.querySelector(".content-form");
   const copyright = document.querySelector(".copyright");
-  document.body.appendChild(loader);
+  //document.body.appendChild(loader);
   loader.style.cssText = `
       position : fixed;
       top : 0;
@@ -786,6 +823,71 @@ function display_loader() {
     form.style.display = "block";
     copyright.style.display = "block";
   }, 1500);
+}
+
+function update_asset_rating(
+  asset_rating,
+  asset_rating_chosen,
+  asset_rating_form
+) {
+  asset_rating.style.display = "block";
+  if (window.onload) asset_rating_chosen.style.display = "none";
+
+  let asset_url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_field_values&item=52-${asset_id}&token=${token}&field_ids=896`;
+  $.ajax({
+    url: asset_url,
+    type: "GET",
+    success: function (response) {
+      let data = JSON.parse(response);
+      let asset_name = data[896];
+      const asset = document.createElement("h4");
+      asset.innerText = asset_name;
+      asset.style.cssText = `
+                text-align:center;
+                padding:1rem;
+              `;
+      asset_rating_form.prepend(asset);
+    },
+    error: function (error) {
+      console.log(response);
+    },
+  });
+  asset_rating.addEventListener("change", function () {
+    let rating = asset_rating.value;
+    console.log(rating);
+    switch (rating) {
+      case "818":
+        rating = 434;
+        break;
+      case "819":
+        rating = 435;
+        break;
+      case "820":
+        rating = 436;
+        break;
+      case "821":
+        rating = 437;
+        break;
+      case "822":
+        rating = 438;
+        break;
+      default:
+        console.log("default");
+    }
+
+    const url = `${instance_url}?module=antevasin/unicloud/public_process&action=update_asset&asset_id=${asset_id}&rating=${rating}&token=${token}`;
+    $.ajax({
+      url: url,
+      type: "GET",
+      success: function (response) {
+        //let data = JSON.parse(response);
+        console.log(response);
+      },
+      error: function (error) {
+        console.log(response);
+      },
+    });
+  });
 }
 
 function get_instance_url() {
