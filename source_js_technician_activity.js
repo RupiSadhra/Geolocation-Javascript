@@ -51,7 +51,6 @@ const visit_site = document.querySelector(".form-group-1902");
 
 //update condition rating arguments
 const asset_rating = document.querySelector("#fields_1987");
-const asset_rating_chosen = document.querySelector("#fields_1987_chosen");
 const asset_rating_form = document.querySelector(".form-group-1987");
 //console.dir(asset_rating);
 
@@ -149,7 +148,7 @@ else if (form_id == 10) {
     `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&form_id=${form_id}&field_ids=1760,1769`;
 
   update_time_values(time_values_action_url);
-  update_asset_rating(asset_rating, asset_rating_chosen, asset_rating_form);
+  update_asset_rating(asset_rating, asset_rating_form);
 
   //code to display only associated contractor job
   show_contractor_job(parent_id);
@@ -181,7 +180,7 @@ else if (form_id == 11) {
   );
   departure_location(departure_location_form, departure_location_field);
   hide_visit_site_again(visit_site_dropdown, visit_site);
-  update_asset_rating(asset_rating, asset_rating_chosen, asset_rating_form);
+  update_asset_rating(asset_rating, asset_rating_form);
   //code to display only associated contractor job
   show_contractor_job(parent_id);
   //hide info and reporting tab
@@ -478,7 +477,7 @@ function show_contractor_job(parent_id) {
     let job_index = job.lastIndexOf("/");
     job_index++;
     const job_name = job.substring(job_index);
-    console.log(job_name);
+    //console.log(job_name);
 
     var newEl = document.createElement("h4");
     newEl.innerHTML = job_name;
@@ -825,21 +824,23 @@ function display_loader() {
   }, 1500);
 }
 
-function update_asset_rating(
-  asset_rating,
-  asset_rating_chosen,
-  asset_rating_form
-) {
+function update_asset_rating(asset_rating, asset_rating_form) {
   asset_rating.style.display = "block";
-  if (window.onload) asset_rating_chosen.style.display = "none";
 
-  let asset_url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_field_values&item=52-${asset_id}&token=${token}&field_ids=896`;
+  window.addEventListener("load", function () {
+    const asset_rating_chosen = document.querySelector("#fields_1987_chosen");
+    asset_rating.style.display = "block";
+    asset_rating_chosen.style.display = "none";
+  });
+
+  let asset_url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_field_values&item=52-${asset_id}&token=${token}&field_ids=762,896`;
   $.ajax({
     url: asset_url,
     type: "GET",
     success: function (response) {
+      //console.log(response);
       let data = JSON.parse(response);
-      let asset_name = data[896];
+      let asset_name = `${data[762]} ${data[896]}`;
       const asset = document.createElement("h4");
       asset.innerText = asset_name;
       asset.style.cssText = `
