@@ -50,8 +50,11 @@ const visit_site_dropdown = document.querySelector("#fields_1901");
 const visit_site = document.querySelector(".form-group-1902");
 
 //update condition rating arguments
-const asset_rating = document.querySelector("#fields_1987");
+const asset_rating = document.querySelectorAll("#fields_1987");
+const asset_rating_options = document.querySelectorAll("#fields_1987 option");
 const asset_rating_form = document.querySelector(".form-group-1987");
+const asset_notes = document.querySelector("#fields_2039");
+const asset_image = document.querySelector("#fields_2038");
 //console.dir(asset_rating);
 
 //public form url values
@@ -148,9 +151,14 @@ else if (form_id == 10) {
     `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&form_id=${form_id}&field_ids=1760,1769`;
 
   update_time_values(time_values_action_url);
-  update_asset_rating(asset_rating, asset_rating_form);
-  get_asset_name();
-  insert_asset_condition_history(asset_rating, visit_dropdown_value);
+  get_asset_values(
+    asset_rating,
+    asset_rating_form,
+    asset_rating_options,
+    asset_notes,
+    asset_image
+  );
+
   //code to display only associated contractor job
   show_contractor_job(parent_id);
   //hide info and reporting tab
@@ -181,9 +189,14 @@ else if (form_id == 11) {
   );
   departure_location(departure_location_form, departure_location_field);
   hide_visit_site_again(visit_site_dropdown, visit_site);
-  update_asset_rating(asset_rating, asset_rating_form);
-  get_asset_name();
-  insert_asset_condition_history(asset_rating, visit_dropdown_value);
+  get_asset_values(
+    asset_rating,
+    asset_rating_form,
+    asset_rating_options,
+    asset_notes,
+    asset_image
+  );
+
   //code to display only associated contractor job
   show_contractor_job(parent_id);
   //hide info and reporting tab
@@ -821,67 +834,51 @@ function display_loader() {
   }, 1500);
 }
 
-function update_asset_rating(asset_rating, asset_rating_form) {
-  asset_rating.style.display = "block";
-
-  window.addEventListener("load", function () {
-    const asset_rating_chosen = document.querySelector("#fields_1987_chosen");
-    asset_rating.style.display = "block";
-    asset_rating_chosen.style.display = "none";
-  });
-
-  //update asset entity
-  asset_rating.addEventListener("change", function () {
-    let rating = asset_rating.value;
-
-    const rating_value_url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_condition_rating_value&rating=${rating}&asset_id=${asset_id}&token=${token}`;
-    $.ajax({
-      url: rating_value_url,
-      type: "GET",
-      success: function (response) {
-        let data = JSON.parse(response);
-        //console.log(data);
-
-        let rating_value = data["rating_value"];
-        let condition_assessment_date = data["last_assessment"];
-        //console.log( condition_assessment_date );
-        const url = `${instance_url}?module=antevasin/unicloud/public_process&action=update_asset&asset_id=${asset_id}&rating=${rating}&rating_value=${rating_value}&date=${condition_assessment_date}&token=${token}`;
-        $.ajax({
-          url: url,
-          type: "GET",
-          success: function (response) {
-            console.log(response);
-          },
-          error: function (error) {
-            //console.log(response);
-          },
-        });
-      },
-      error: function (error) {},
-    });
-  });
-}
-
-function get_asset_name() {
-  let asset_url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_field_values&item=52-${asset_id}&token=${token}&field_ids=762,896`;
+function get_asset_name(asset_rating_options) {
+  let current_rating;
+  let asset_url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_field_values&item=52-${asset_id}&token=${token}&field_ids=762,896,973`;
   //console.log('asset '+asset_url);
 
   $.ajax({
     url: asset_url,
     type: "GET",
     success: function (response) {
-      //console.log(response);
+      console.log(response);
       let data = JSON.parse(response);
       let asset_name = `${data[762]} ${data[896]}`;
+      let current_rating_value = data[973];
       const asset = document.createElement("h5");
       asset.innerText = asset_name;
       asset.style.cssText = `
                     text-align:left;
-                    padding:1.5rem;
+                    padding:1.5rem 0;
                     margin-left:1.5rem;
                     text-transform:uppercase;
+                    font-weight: 600;
                   `;
       asset_rating_form.prepend(asset);
+
+      asset_rating_options.forEach(function (asset) {
+        if (asset.value == current_rating_value) current_rating = asset.text;
+      });
+
+      //console.log(current_rating);
+      const rating = document.createElement("h5");
+      rating.innerText = `Current Asset Condition Assessment : ${current_rating}`;
+      rating.style.cssText = `
+                    text-align:left;
+                    padding:0;
+                    text-transform:uppercase;
+                  `;
+      asset.append(rating);
+
+      const note = document.createElement("div");
+      note.innerText = `* Please only update the Asset Condition Assessment if it differs from above`;
+      note.style.cssText = `
+                   padding-left:2rem;
+                   margin-top:5rem;
+                  `;
+      asset_rating_form.append(note);
     },
     error: function (error) {
       console.log(response);
@@ -889,10 +886,24 @@ function get_asset_name() {
   });
 }
 
-function insert_asset_condition_history(asset_rating) {
+function get_asset_values(
+  asset_rating,
+  asset_rating_form,
+  asset_rating_options,
+  asset_notes,
+  asset_image
+) {
+  get_asset_name(asset_rating_options);
+
   const button = document.querySelector('button[type="submit"]');
   const form = document.querySelector("#public-form");
-  let user_id;
+  asset_rating[0].style.display = "block";
+
+  window.addEventListener("load", function () {
+    const asset_rating_chosen = document.querySelector("#fields_1987_chosen");
+    asset_rating[0].style.display = "block";
+    asset_rating_chosen.style.display = "none";
+  });
 
   let url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=1758`;
   //console.log('asset '+asset_url);
@@ -901,33 +912,70 @@ function insert_asset_condition_history(asset_rating) {
     type: "GET",
     success: function (response) {
       let data = JSON.parse(response);
-      user_id = data[1758];
-
+      let user_id = data[1758];
+      console.log(user_id);
       button.addEventListener("click", function (e) {
         e.preventDefault();
-        const condition = asset_rating.value;
-        const today = new Date();
-        let ms = Date.parse(today);
-        const condition_history_date = parseInt(ms / 1000);
-        //console.log(condition_history_date);
-        let insert_url = `${instance_url}?module=antevasin/unicloud/public_process&action=insert_condition_history&asset_id=${asset_id}&user=${user_id}&condition=${condition}&date=${condition_history_date}&token=${token}`;
 
+        let rating = asset_rating[0].value;
+
+        const rating_value_url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_condition_rating_value&rating=${rating}&asset_id=${asset_id}&token=${token}`;
         $.ajax({
-          url: insert_url,
+          url: rating_value_url,
           type: "GET",
           success: function (response) {
-            //console.log(response);
-            if (visit_dropdown_value != 807) {
-              //console.log(visit_dropdown_value);
-              // console.log('asset submit');
-              $("#public_form").submit();
-            }
+            //console.log(data);
+
+            let rating_value = response;
+
+            const today = new Date();
+            let ms = Date.parse(today);
+            const assessment_date = parseInt(ms / 1000);
+            // console.log(rating+"   " +rating_value+"   "+assessment_date);
+
+            const notes = asset_notes.value;
+            const image = asset_image.value;
+
+            console.log("notes   " + notes + "Image " + image);
+            update_asset_insert_history(
+              rating,
+              rating_value,
+              assessment_date,
+              user_id,
+              notes,
+              image
+            );
+            //console.log( assessment_date );
           },
-          error: function (error) {
-            console.log(response);
-          },
+          error: function (error) {},
         });
       });
+    },
+    error: function (error) {
+      console.log(response);
+    },
+  });
+}
+
+function update_asset_insert_history(
+  rating,
+  rating_value,
+  assessment_date,
+  user_id,
+  notes,
+  image
+) {
+  let update_insert_url = `${instance_url}?module=antevasin/unicloud/public_process&action=update_asset_insert_history&asset_id=${asset_id}&user_id=${user_id}&rating=${rating}&rating_value=${rating_value}&date=${assessment_date}&notes=${notes}&image=${image}&token=${token}`;
+
+  $.ajax({
+    url: update_insert_url,
+    type: "GET",
+    success: function (response) {
+      console.log(response);
+      if (visit_dropdown_value != 807) {
+        // console.log('asset submit');
+        $("#public_form").submit();
+      }
     },
     error: function (error) {
       console.log(response);
@@ -951,60 +999,4 @@ function today_date_time() {
   const time = today.getHours() + ":" + today.getMinutes();
   const dateTime = date + " " + time;
   return dateTime;
-}
-
-function get_asset_values(asset_rating, asset_rating_form) {
-  const button = document.querySelector('button[type="submit"]');
-  const form = document.querySelector("#public-form");
-  asset_rating.style.display = "block";
-
-  window.addEventListener("load", function () {
-    const asset_rating_chosen = document.querySelector("#fields_1987_chosen");
-    asset_rating.style.display = "block";
-    asset_rating_chosen.style.display = "none";
-  });
-
-  let url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=1758`;
-  //console.log('asset '+asset_url);
-  $.ajax({
-    url: url,
-    type: "GET",
-    success: function (response) {
-      let data = JSON.parse(response);
-      let user_id = data[1758];
-
-      button.addEventListener("click", function (e) {
-        e.preventDefault();
-
-        let rating = asset_rating.value;
-
-        const rating_value_url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_condition_rating_value&rating=${rating}&asset_id=${asset_id}&token=${token}`;
-        $.ajax({
-          url: rating_value_url,
-          type: "GET",
-          success: function (response) {
-            //console.log(data);
-
-            let rating_value = response;
-
-            const today = new Date();
-            let ms = Date.parse(today);
-            const assessment_date = parseInt(ms / 1000);
-
-            update_asset_insert_history(
-              rating,
-              rating_value,
-              assessment_date,
-              user_id
-            );
-            //console.log( assessment_date );
-          },
-          error: function (error) {},
-        });
-      });
-    },
-    error: function (error) {
-      console.log(response);
-    },
-  });
 }
