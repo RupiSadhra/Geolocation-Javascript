@@ -77,6 +77,7 @@ const site_id = full_path[2];
 let action_url;
 let visit_dropdown_value;
 let public_form = true;
+
 //sign in form
 if (form_id == 9) {
   //check status and redirect if applicable
@@ -803,10 +804,10 @@ function hide_visit_site_again(visit_site_dropdown, visit_site) {
             if (response_obj.hasOwnProperty("success")) {
               // console.log( 'success' );
               if (public_form) {
-                //alert('public form submit');
+                console.log("public form submit");
                 $("#public_form").submit();
               } else {
-                //alert('process submit');
+                console.log("process submit");
                 $("#process").submit();
               }
               //console.log('visit submit');
@@ -1003,7 +1004,7 @@ function get_asset_values(
           });
         } else {
           if (visit_dropdown_value != 807) {
-            console.log("asset submit");
+            console.log("asset submit via public form");
             form.submit();
           }
         }
@@ -1026,35 +1027,41 @@ function update_asset_insert_history(
   form,
   asset_image
 ) {
+  let update_form = $("#public_form")[0];
   if (asset_id_action_button) {
     asset_id = asset_id_action_button;
+    update_form = $("#process")[0];
   }
+  let publicForm;
   let update_insert_url = `${instance_url}?module=antevasin/unicloud/public_process&action=update_asset_insert_history&asset_id=${asset_id}&user_id=${user_id}&rating=${rating}&rating_value=${rating_value}&date=${assessment_date}&notes=${notes}&token=${token}`;
 
   $.ajax({
     url: update_insert_url,
     type: "GET",
     success: function (response) {
-      console.log(response);
       const history_id = response;
       const full_path = form_path.split("/");
       const history_path = `${full_path[0]}/${full_path[1]}/${full_path[2]}`;
       asset_image.id = "fields_2031";
       asset_image.setAttribute("name", "fields[2031]");
 
-      let history_image_url = `${instance_url}?module=items/processes&action=run&id=154&path=${history_path}/52-${asset_id}/88-${history_id}&token=${token}&redirect_to=items_info`;
-      console.log(history_image_url);
+      let history_image_url = `${instance_url}?module=items/processes&action=run&id=155&path=${history_path}/52-${asset_id}/88-${history_id}&token=${token}&redirect_to=items_info`;
+      console.log(update_form);
+
+      var formData = new FormData(update_form);
       $.ajax({
         url: history_image_url,
         type: "POST",
-        // data: $('form#public_form').serialize(),
-        data: { fields_2031: "image" },
+        processData: false,
+        contentType: false,
+        data: formData,
         success: function (response) {
           console.log(response);
-
+          asset_image.id = "fields_2038";
+          asset_image.setAttribute("name", "fields[2038]");
           if (visit_dropdown_value != 807) {
             console.log("asset submit");
-            //form.submit();
+            form.submit();
           }
         },
         error: function (error) {
