@@ -994,7 +994,8 @@ function get_asset_values(
                 notes,
                 image,
                 asset_id_action_button,
-                form
+                form,
+                asset_image
               );
               //console.log( assessment_date );
             },
@@ -1022,22 +1023,44 @@ function update_asset_insert_history(
   notes,
   image,
   asset_id_action_button,
-  form
+  form,
+  asset_image
 ) {
   if (asset_id_action_button) {
     asset_id = asset_id_action_button;
   }
-  let update_insert_url = `${instance_url}?module=antevasin/unicloud/public_process&action=update_asset_insert_history&asset_id=${asset_id}&user_id=${user_id}&rating=${rating}&rating_value=${rating_value}&date=${assessment_date}&notes=${notes}&image=${image}&token=${token}`;
+  let update_insert_url = `${instance_url}?module=antevasin/unicloud/public_process&action=update_asset_insert_history&asset_id=${asset_id}&user_id=${user_id}&rating=${rating}&rating_value=${rating_value}&date=${assessment_date}&notes=${notes}&token=${token}`;
 
   $.ajax({
     url: update_insert_url,
     type: "GET",
     success: function (response) {
       console.log(response);
-      if (visit_dropdown_value != 807) {
-        console.log("asset submit");
-        form.submit();
-      }
+      const history_id = response;
+      const full_path = form_path.split("/");
+      const history_path = `${full_path[0]}/${full_path[1]}/${full_path[2]}`;
+      asset_image.id = "fields_2031";
+      asset_image.setAttribute("name", "fields[2031]");
+
+      let history_image_url = `${instance_url}?module=items/processes&action=run&id=154&path=${history_path}/52-${asset_id}/88-${history_id}&token=${token}&redirect_to=items_info`;
+      console.log(history_image_url);
+      $.ajax({
+        url: history_image_url,
+        type: "POST",
+        // data: $('form#public_form').serialize(),
+        data: { fields_2031: "image" },
+        success: function (response) {
+          console.log(response);
+
+          if (visit_dropdown_value != 807) {
+            console.log("asset submit");
+            //form.submit();
+          }
+        },
+        error: function (error) {
+          console.log(response);
+        },
+      });
     },
     error: function (error) {
       console.log(response);
@@ -1058,7 +1081,6 @@ function hide_asset_notes_image(
   asset_image_form.style.display = "none";
   asset_rating.addEventListener("change", function () {
     var value = asset_rating.value;
-
     if (value == "") {
       asset_notes_form.style.display = "none";
       asset_image_form.style.display = "none";
