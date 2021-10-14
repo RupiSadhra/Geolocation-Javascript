@@ -154,7 +154,7 @@ else if (form_id == 10) {
     let sign_out_action_url =
         instance_url +
         `?module=ext/public/form&id=11&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${map_location}&path=${form_path}&token=${token}`;
-    let sign_out_button_html = `<button type="button" onclick="sign_out_from_update_form( '${sign_out_action_url}' )" class="btn btn-primary">Sign Out</button>`;
+    let sign_out_button_html = `<button type="button" onclick="redirect_form( '${sign_out_action_url}' )" class="btn btn-primary">Sign Out</button>`;
     $(".btn-primary").after(sign_out_button_html);
     //change action url of public form
     const public_form = document.getElementById("public_form");
@@ -236,6 +236,8 @@ else if (form_id == 11) {
     display_loader();
 } else if (form_id == 14) {
 
+    check_status_assigned_declined();
+
     action_url =
         instance_url +
         `?module=antevasin/unicloud/public_process&action=run&id=157&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
@@ -245,11 +247,21 @@ else if (form_id == 11) {
     const public_form = document.getElementById("public_form");
     public_form.action = action_url;
 
-    show_contractor_job(parent_id);
-    hide_tabs([168, 136]);
-    accept_job_date(job_accept_date, work_activity, site_review);
-} else if (form_id == 15) {
+    //decline job button
+    let decline_job_action_url =
+        instance_url +
+        `?module=ext/public/form&id=15&parent_item_id=${parent_id}&technician_id=${technician_id}&path=${form_path}&token=${token}`;
+    let decline_job_button_html = `<button style="background-color:#d32f2f; border-color:#d32f2f;" type="button" onclick="redirect_form( '${decline_job_action_url}' )" class="btn btn-primary">Decline Job</button>`;
+    $(".btn-primary").after(decline_job_button_html);
 
+    show_contractor_job(parent_id);
+    hide_tab([168, 136]);
+    accept_job_date(job_accept_date, work_activity, site_review);
+    show_work_activity();
+} 
+
+else if (form_id == 15) {
+    check_status_assigned_declined();
     action_url =
         instance_url +
         `?module=antevasin/unicloud/public_process&action=run&id=158&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
@@ -258,10 +270,9 @@ else if (form_id == 11) {
     //change action url of public form
     const public_form = document.getElementById("public_form");
     public_form.action = action_url;
-    required_message.style.display = "none";
     show_contractor_job(parent_id);
-    hide_tabs([168, 136]);
-    decline_job_date(job_decline_date, job_decline_reason, required_message);
+    hide_tab([168, 136]);
+    decline_job_date(job_decline_date, job_decline_reason, required_message, true);
 }
 
 function update_departure_time() {
@@ -341,10 +352,41 @@ function check_if_signed_out() {
     check_status(check_status_url, redirect_url, 764, true);
 }
 
-function sign_out_from_update_form(sign_out_url) {
-    //console.log("sign out on update form " + sign_out_url);
-    window.location.href = sign_out_url;
+function check_status_assigned_declined() {
+    let redirect_url;
+    let check_status_url =
+        instance_url +
+        `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=1768,1772`;
+
+    $.ajax({
+        url: check_status_url,
+        type: "GET",
+        success: function(response) {
+            let data = JSON.parse(response);
+
+            if (data[1768] == 762) {
+                redirect_url = instance_url +
+                    `?module=ext/public/form&id=9&parent_item_id=${parent_id}&technician_id=${technician_id}&path=${form_path}&planned_time_onsite=${data[1772]}&token=${token}`;
+                window.location.href = redirect_url;
+            } else if (data[1768] == 891) {
+                window.location.href = instance_url;
+            }
+        },
+        error: function(error) {
+            console.log(error);
+        },
+    });
 }
+
+// function sign_out_from_update_form(sign_out_url) {
+//     //console.log("sign out on update form " + sign_out_url);
+//     window.location.href = sign_out_url;
+// }
+
+function redirect_form(url) {
+    window.location.href = url;
+}
+
 
 function hide_tabs() {
     const info_tab = document.querySelectorAll(".form_tab_128");
@@ -1140,9 +1182,11 @@ function hide_asset_notes_image(
     });
 }
 
-function accept_job_date(job_accept_date, work_activity, site_review) {
+function accept_job_date(job_accept_date, work_activity, site_review, action_button) {
+    let form;
     const button = document.querySelector("button[type='submit']");
-    const form = document.querySelector("#public_form");
+    if (action_button) form = document.querySelector("#process");
+    else form = document.querySelector("#public_form");
     button.addEventListener('click', function(e) {
         e.preventDefault();
         if (work_activity.checked && site_review.checked) {
@@ -1152,17 +1196,126 @@ function accept_job_date(job_accept_date, work_activity, site_review) {
     })
 }
 
-function decline_job_date(job_decline_date, job_decline_reason, required_message) {
+function decline_job_date(job_decline_date, job_decline_reason, required_message, action_button) {
+    required_message.style.display = "none";
     const button = document.querySelector("button[type='submit']");
-    const form = document.querySelector("#public_form");
+    if (action_button) form = document.querySelector("#process");
+    else form = document.querySelector("#public_form");
     button.addEventListener('click', function(e) {
         e.preventDefault();
-
         job_decline_date.value = today_date_time();
         if (job_decline_reason.value !== '') form.submit();
         else required_message.style.display = "inline";
-        //form.submit();
+        form.submit();
     })
+}
+
+
+function show_work_activity()
+{
+      window.addEventListener('load',function(){
+          const chosen_choices=document.querySelector('.chosen-choices');
+      
+          const work_activity = document.querySelector('.chosen-container');
+         const work_activity_options = document.querySelectorAll('#fields_2216 option');    
+           
+         
+     let url = instance_url +
+        `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=2216`;
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        success: function(response) {
+            let data = JSON.parse(response);
+            let work_activity_list = data[2216];
+            let work_activity_ids = work_activity_list.split(',');
+            //console.log(work_activity);
+            
+            work_activity_ids.forEach(function(id){
+                 work_activity_options.forEach(function(option){
+                    
+                    if(id==option.value)
+                    {
+                        option.setAttribute('selected',true);
+                    }
+                });  
+            });
+            $( '#fields_2216' ).trigger( 'chosen:updated');
+        },
+        error: function(error) {
+            console.log(error);
+        },
+    });
+    
+    });
+}
+function show_work_activityy() {
+   
+    window.addEventListener('load',function(){
+          const chosen_choices=document.querySelector('.chosen-choices');
+      
+          const work_activity = document.querySelector('.chosen-container');
+         const chosen_results = $('#fields_2216_chosen ul.chosen-results li');    
+            console.dir(chosen_results);
+         
+     let url = instance_url +
+        `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=2216`;
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        success: function(response) {
+            let data = JSON.parse(response);
+            let work_activity_list = data[2216];
+            let work_activity_ids = work_activity_list.split(',');
+            //console.log(work_activity);
+            
+            work_activity_ids.forEach(function(id){
+                    let url = instance_url +
+                        `?module=antevasin/unicloud/public_process&action=get_field_values&item=92-${id}&token=${token}&field_ids=2120`;
+                
+                    $.ajax({
+                        url: url,
+                        type: "GET",
+                        success: function(response) {
+                            let data = JSON.parse(response);
+                            let title = data[2120];
+                            
+                            let li = document.createElement('li');
+                            li.setAttribute('class','search-choice');
+                            chosen_choices.prepend(li);
+                            let span = document.createElement('span');
+                            span.innerText = title;
+                            li.appendChild(span);
+                            let a = document.createElement('a');
+                            a.setAttribute('class','search-choice-close');
+                            id--;
+                            a.setAttribute('data-option-array-index',`${id}`);
+                            li.appendChild(a);
+                            $( '#fields_2216' ).trigger( 'chosen:updated');
+                            // chosen_drop.forEach(function(li,index){
+                            //     let list_id=index++;
+                            //     if(id==list_id){
+                            //         console.log(list_id);
+                            //     }
+                            // });
+                        },
+                        error: function(error) {
+                            console.log(error);
+                        },
+                    });
+            });
+            
+        },
+        error: function(error) {
+            console.log(error);
+        },
+    });
+    
+    });
+    
+   
 }
 
 function get_instance_url() {
@@ -1183,9 +1336,8 @@ function today_date_time() {
     return dateTime;
 }
 
-function hide_tabs(tabs) {
+function hide_tab(tabs) {
     tabs.forEach(function(tab) {
-        console.log('hide_tab ' + tab);
         document.querySelector(`.form_tab_${tab}`).style.display = "none";
     });
 }
