@@ -1,11 +1,3 @@
-$.getScript("https://source.unicloud.co.nz/js/functions.js", function() {
-    //helper functions
-    get_instance_url();
-});
-
-// hide the form while we set up the form - THIS IS NOW IN THE PUBLIC FORM JS TO IMPROVE UX
-// $(".content-form").hide();
-
 let instance_url = get_instance_url();
 
 //get_technician_activity() arguments
@@ -70,6 +62,10 @@ const job_decline_date = document.querySelector("#fields_2249");
 const job_decline_reason = document.querySelector("#fields_2250");
 const required_message = document.querySelector(".help-block");
 
+//show_work_activity() arguments
+const work_activity_options = document.querySelectorAll('#fields_2216 option');
+
+
 //public form url values
 const path = window.location.href;
 const url = new URLSearchParams(path);
@@ -133,11 +129,7 @@ if (form_id == 9) {
     );
 
     show_contractor_job(parent_id);
-
-    hide_tabs();
-    const reporting_tab = document.querySelectorAll(".form_tab_136");
-    reporting_tab[0].style.display = "none";
-
+    hide_tab([128, 136]);
     display_loader();
 }
 
@@ -185,7 +177,7 @@ else if (form_id == 10) {
     //code to display only associated contractor job
     show_contractor_job(parent_id);
     //hide info and reporting tab
-    hide_tabs();
+    hide_tab([128]);
     display_loader();
 }
 
@@ -230,9 +222,8 @@ else if (form_id == 11) {
     //code to display only associated contractor job
     show_contractor_job(parent_id);
     //hide info and reporting tab
-    hide_tabs();
-    const reporting_tab = document.querySelectorAll(".form_tab_136");
-    reporting_tab[0].style.display = "none";
+    hide_tab([128, 136]);
+
     display_loader();
 } else if (form_id == 14) {
 
@@ -257,10 +248,9 @@ else if (form_id == 11) {
     show_contractor_job(parent_id);
     hide_tab([168, 136]);
     accept_job_date(job_accept_date, work_activity, site_review);
-    show_work_activity();
-} 
-
-else if (form_id == 15) {
+    show_work_activity(work_activity_options);
+    display_loader();
+} else if (form_id == 15) {
     check_status_assigned_declined();
     action_url =
         instance_url +
@@ -273,13 +263,14 @@ else if (form_id == 15) {
     show_contractor_job(parent_id);
     hide_tab([168, 136]);
     decline_job_date(job_decline_date, job_decline_reason, required_message, true);
+    display_loader();
 }
 
 function update_departure_time() {
     let arrival_on_site = document.querySelector("#fields_1762");
 }
 // finish up by showing the form again
-$(".content-form").show();
+// $(".content-form").show();
 
 function update_time_values(url) {
     $.ajax({
@@ -911,7 +902,8 @@ function display_loader() {
     const loader = document.createElement("div");
     const form = document.querySelector(".content-form");
     const copyright = document.querySelector(".copyright");
-    //document.body.appendChild(loader);
+    copyright.style.display = "none";
+    document.body.appendChild(loader);
     loader.style.cssText = `
       position : fixed;
       top : 0;
@@ -938,7 +930,7 @@ function display_loader() {
         loader.style.display = "none";
         form.style.display = "block";
         copyright.style.display = "block";
-    }, 1500);
+    }, 1000);
 }
 
 function get_asset_name(asset_rating_options, asset_id_action_button) {
@@ -1182,19 +1174,41 @@ function hide_asset_notes_image(
     });
 }
 
+function accept_job_check(work_activity, site_review, button) {
+    let flag = 0;
+    button.disabled = true;
+    work_activity.addEventListener('click', function() {
+        if (work_activity.checked) flag++;
+        else flag--;
+        if (flag >= 2) button.disabled = false;
+        else button.disabled = true;
+    });
+    site_review.addEventListener('click', function() {
+        if (site_review.checked) flag++;
+        else flag--;
+        if (flag >= 2) button.disabled = false;
+        else button.disabled = true;
+    })
+}
+
 function accept_job_date(job_accept_date, work_activity, site_review, action_button) {
+
     let form;
     const button = document.querySelector("button[type='submit']");
+    accept_job_check(work_activity, site_review, button);
     if (action_button) form = document.querySelector("#process");
     else form = document.querySelector("#public_form");
     button.addEventListener('click', function(e) {
         e.preventDefault();
         if (work_activity.checked && site_review.checked) {
             job_accept_date.value = today_date_time();
+            form.submit();
         }
-        form.submit();
+
     })
 }
+
+
 
 function decline_job_date(job_decline_date, job_decline_reason, required_message, action_button) {
     required_message.style.display = "none";
@@ -1211,16 +1225,8 @@ function decline_job_date(job_decline_date, job_decline_reason, required_message
 }
 
 
-function show_work_activity()
-{
-      window.addEventListener('load',function(){
-          const chosen_choices=document.querySelector('.chosen-choices');
-      
-          const work_activity = document.querySelector('.chosen-container');
-         const work_activity_options = document.querySelectorAll('#fields_2216 option');    
-           
-         
-     let url = instance_url +
+function show_work_activity(work_activity_options) {
+    let url = instance_url +
         `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=2216`;
 
     $.ajax({
@@ -1231,92 +1237,78 @@ function show_work_activity()
             let work_activity_list = data[2216];
             let work_activity_ids = work_activity_list.split(',');
             //console.log(work_activity);
-            
-            work_activity_ids.forEach(function(id){
-                 work_activity_options.forEach(function(option){
-                    
-                    if(id==option.value)
-                    {
-                        option.setAttribute('selected',true);
+
+            work_activity_ids.forEach(function(id) {
+                work_activity_options.forEach(function(option) {
+
+                    if (id == option.value) {
+                        option.setAttribute('selected', true);
                     }
-                });  
+                });
             });
-            $( '#fields_2216' ).trigger( 'chosen:updated');
+
+            $('#fields_2216').trigger('chosen:updated');
+
+            let ids = $("#fields_2216").chosen().val();
+
+            work_activity_tags(ids);
+            $("#fields_2216").chosen({ disable_search_threshold: 10 }).change(function(event) {
+                if (event.target == this) {
+                    ids = ($(this).val());
+
+                    $("#fields_2216").trigger('chosen:updated');
+                    work_activity_tags(ids);
+                }
+            });
+
         },
         error: function(error) {
             console.log(error);
         },
     });
-    
-    });
 }
-function show_work_activityy() {
-   
-    window.addEventListener('load',function(){
-          const chosen_choices=document.querySelector('.chosen-choices');
-      
-          const work_activity = document.querySelector('.chosen-container');
-         const chosen_results = $('#fields_2216_chosen ul.chosen-results li');    
-            console.dir(chosen_results);
-         
-     let url = instance_url +
-        `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=2216`;
 
+function work_activity_tags(ids) {
+    const chosen_container = document.querySelector('.form-group-2216 .col-md-9');
+    if (document.querySelector('.work-activity-tags') || ids == null) {
+        document.querySelector('.work-activity-tags').remove();
+    }
+    let chosen_ids = ids.toString();
+    //console.log(chosen_ids);
+    let url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_work_activity_tags&chosen_ids=${chosen_ids}&token=${token}`;
     $.ajax({
         url: url,
         type: "GET",
         success: function(response) {
-            let data = JSON.parse(response);
-            let work_activity_list = data[2216];
-            let work_activity_ids = work_activity_list.split(',');
-            //console.log(work_activity);
-            
-            work_activity_ids.forEach(function(id){
-                    let url = instance_url +
-                        `?module=antevasin/unicloud/public_process&action=get_field_values&item=92-${id}&token=${token}&field_ids=2120`;
-                
-                    $.ajax({
-                        url: url,
-                        type: "GET",
-                        success: function(response) {
-                            let data = JSON.parse(response);
-                            let title = data[2120];
-                            
-                            let li = document.createElement('li');
-                            li.setAttribute('class','search-choice');
-                            chosen_choices.prepend(li);
-                            let span = document.createElement('span');
-                            span.innerText = title;
-                            li.appendChild(span);
-                            let a = document.createElement('a');
-                            a.setAttribute('class','search-choice-close');
-                            id--;
-                            a.setAttribute('data-option-array-index',`${id}`);
-                            li.appendChild(a);
-                            $( '#fields_2216' ).trigger( 'chosen:updated');
-                            // chosen_drop.forEach(function(li,index){
-                            //     let list_id=index++;
-                            //     if(id==list_id){
-                            //         console.log(list_id);
-                            //     }
-                            // });
-                        },
-                        error: function(error) {
-                            console.log(error);
-                        },
-                    });
-            });
-            
+            let tags = JSON.parse(response);
+            //console.log(tags);
+
+            let div = document.createElement('div');
+            div.style.cssText = `
+                    display:flex;
+                    flex-wrap:wrap;
+                `;
+            div.setAttribute('class', 'work-activity-tags');
+            tags.forEach(function(tag_title) {
+                let span = document.createElement('span');
+                span.innerText = tag_title;
+                span.style.cssText = `
+                    padding:0.5rem 1rem;
+                    margin:1rem 1rem 0 0;
+                    background-color:#d32f2f;
+                    color:white;
+                    border-radius:5px;
+                `;
+                div.append(span);
+                chosen_container.append(div);
+            })
         },
         error: function(error) {
             console.log(error);
         },
     });
-    
-    });
-    
-   
 }
+
 
 function get_instance_url() {
     return (
