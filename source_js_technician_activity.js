@@ -65,6 +65,8 @@ const required_message = document.querySelector(".help-block");
 //show_work_activity() arguments
 const work_activity_options = document.querySelectorAll('#fields_2216 option');
 
+//disable_work_activity() arguments
+const update_work_activity = document.querySelector("#fields_2260");
 
 //public form url values
 const path = window.location.href;
@@ -83,6 +85,12 @@ const site_id = full_path[2];
 let action_url;
 let visit_dropdown_value;
 let public_form = true;
+
+//link to site safety documents
+site_safety_documents();
+
+//refresh page on close button 
+refresh_on_automate_action_close();
 
 //sign in form
 if (form_id == 9) {
@@ -225,8 +233,11 @@ else if (form_id == 11) {
     hide_tab([128, 136]);
 
     display_loader();
-} else if (form_id == 14) {
+}
 
+//accept job form
+else if (form_id == 14) {
+    let default_chosen_ids;
     check_status_assigned_declined();
 
     action_url =
@@ -247,10 +258,15 @@ else if (form_id == 11) {
 
     show_contractor_job(parent_id);
     hide_tab([168, 136]);
+    disable_work_activity(update_work_activity, work_activity_options);
     accept_job_date(job_accept_date, work_activity, site_review);
     show_work_activity(work_activity_options);
     display_loader();
-} else if (form_id == 15) {
+
+}
+
+//decline job form
+else if (form_id == 15) {
     check_status_assigned_declined();
     action_url =
         instance_url +
@@ -1010,7 +1026,7 @@ function get_asset_values(
         //console.log(path);
         let technician_path = path[4].split("-");
         technician_id = technician_path[1];
-        console.log(technician_id);
+        //console.log(technician_id);
         public_form = false;
         form = document.querySelector("form#process");
     }
@@ -1174,6 +1190,20 @@ function hide_asset_notes_image(
     });
 }
 
+function disable_work_activity(update_work_activity, work_activity_options) {
+    $('#fields_2216').prop('disabled', true).trigger("chosen:updated");
+    update_work_activity.addEventListener('change', function() {
+        if (update_work_activity.checked) {
+            $('#fields_2216').prop('disabled', false).trigger("chosen:updated");
+        } else {
+            $("#fields_2216").chosen().val(default_chosen_ids);
+            $("#fields_2216").trigger('chosen:updated');
+            work_activity_tags(default_chosen_ids);
+            $('#fields_2216').prop('disabled', true).trigger("chosen:updated");
+        }
+    })
+}
+
 function accept_job_check(work_activity, site_review, button) {
     let flag = 0;
     button.disabled = true;
@@ -1226,6 +1256,9 @@ function decline_job_date(job_decline_date, job_decline_reason, required_message
 
 
 function show_work_activity(work_activity_options) {
+    if (!technician_id) {
+        technician_id = get_technician_id();
+    }
     let url = instance_url +
         `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=2216`;
 
@@ -1248,8 +1281,8 @@ function show_work_activity(work_activity_options) {
             });
 
             $('#fields_2216').trigger('chosen:updated');
-
             let ids = $("#fields_2216").chosen().val();
+            default_chosen_ids = ids;
 
             work_activity_tags(ids);
             $("#fields_2216").chosen({ disable_search_threshold: 10 }).change(function(event) {
@@ -1267,6 +1300,7 @@ function show_work_activity(work_activity_options) {
         },
     });
 }
+
 
 function work_activity_tags(ids) {
     const chosen_container = document.querySelector('.form-group-2216 .col-md-9');
@@ -1309,6 +1343,46 @@ function work_activity_tags(ids) {
     });
 }
 
+function refresh_on_automate_action_close() {
+    const form = document.querySelector('form#process');
+    const close_button = document.querySelector('.btn-close');
+    const close_icon = document.querySelector('.close');
+    if (form) {
+        close_button.addEventListener('click', function() {
+            location.reload();
+        });
+        close_icon.addEventListener('click', function() {
+            location.reload();
+        });
+    }
+}
+
+function site_safety_documents() {
+    const modal_footer = document.querySelector('.modal-footer');
+    let path = form_path.split('/');
+    let documents_path = `${path[0]}/${path[1]}/${path[2]}/85`;
+    let site_safety_documents_path = `${instance_url}?module=items/items&path=${documents_path}`;
+    const link = document.createElement('a');
+    link.innerText = 'Site Safety Documents';
+    link.setAttribute('href', site_safety_documents_path);
+    link.setAttribute('class', 'btn');
+    link.style.cssText = `
+        background-color:#197278;
+        color:white;
+    `;
+    modal_footer.append(link);
+}
+
+function get_technician_id() {
+    const form = document.querySelector('form#process');
+    let action = form.action;
+    let action_array = action.split("&");
+    let path = action_array[3].split("/");
+    //console.log(path);
+    let technician_path = path[4].split("-");
+    technician_id = technician_path[1];
+    return technician_id;
+}
 
 function get_instance_url() {
     return (
