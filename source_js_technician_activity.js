@@ -7,6 +7,7 @@ const override_location_dropdown = document.querySelector("#fields_1765");
 const override_location = document.querySelector(".form-group-1766");
 const button_message = document.getElementById("form-error-container");
 
+
 //disable_arrival_on_site() arguments
 const arrival_on_site = document.querySelector("#fields_1762");
 const actual_arrival_on_site = document.querySelector("#fields_1862");
@@ -71,6 +72,7 @@ const update_work_activity = document.querySelector("#fields_2260");
 
 //show_related_assets_dropdown() arguments
 const assets_dropdown = document.querySelector("#fields_2273");
+const asset_dropdown_form = document.querySelector(".form-group-2273");
 
 //public form url values
 const path = window.location.href;
@@ -248,13 +250,19 @@ else if (form_id == 11) {
                 asset_notes,
                 asset_image
             );
-            assets_dropdown.style.display = "none";
-        } else {
-            assets_dropdown.style.display = "block";
-            show_related_assets_dropdown(asset_ids);
+            asset_dropdown_form.style.display = "none";
         }
-    } else {
+        //multiple assets
+        else {
+            asset_dropdown_form.style.display = "block";
+            show_related_assets_dropdown(asset_ids, assets_dropdown);
+            get_asset_from_dropdown(assets_dropdown, asset_rating_options);
+        }
+    }
+    //no asset
+    else {
         asset_rating_form.style.display = "none";
+        asset_dropdown_form.style.display = "none";
     }
     //code to display only associated contractor job
     show_contractor_job(parent_id);
@@ -540,6 +548,7 @@ function get_technician_activity(
                         } else {
                             button_message.innerText = "You have to answer all questions before signing in!";
                             override_location_dropdown.value = 760;
+                            override_location.style.display = "none";
                         }
                     });
                 });
@@ -572,8 +581,9 @@ function get_directions_google_map(siteLatitude, siteLongitude) {
     const get_directions = document.createElement("a");
     get_directions.classList.add("btn");
     get_directions.classList.add("btn-success");
-    get_directions.innerText = "GET DIRECTIONS";
+    get_directions.innerText = "Get Directions";
     get_directions.target = "_blank";
+    get_directions.style.marginTop = "0.5rem";
     document.querySelector(".modal-footer").append(get_directions);
 
     get_directions.addEventListener("click", function() {
@@ -990,9 +1000,11 @@ function display_loader() {
 }
 
 
-function get_asset_name(asset_rating_options, asset_id_action_button) {
+function get_asset_name(asset_rating_options, asset_id_action_button, mutiple_asset_id = false) {
     if (asset_id_action_button) {
         asset_id = asset_id_action_button;
+    } else if (mutiple_asset_id) {
+        asset_id = mutiple_asset_id;
     }
     let current_rating;
     let asset_url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_field_values&item=52-${asset_id}&token=${token}&field_ids=762,896,973`;
@@ -1008,6 +1020,7 @@ function get_asset_name(asset_rating_options, asset_id_action_button) {
             let current_rating_value = data[973];
             const asset = document.createElement("h5");
             asset.innerText = asset_name;
+            asset.classList.add('asset-info');
             asset.style.cssText = `
                     text-align:left;
                     padding:1.5rem 0;
@@ -1024,6 +1037,7 @@ function get_asset_name(asset_rating_options, asset_id_action_button) {
             //console.log(current_rating);
             const rating = document.createElement("h5");
             rating.innerText = `Current Asset Condition Assessment : ${current_rating}`;
+            rating.classList.add('asset-info');
             rating.style.cssText = `
                     text-align:left;
                     padding:0;
@@ -1031,13 +1045,14 @@ function get_asset_name(asset_rating_options, asset_id_action_button) {
                   `;
             asset.append(rating);
 
-            const note = document.createElement("div");
-            note.innerText = `* Please only update the Asset Condition Assessment if it differs from above`;
-            note.style.cssText = `
-                   padding-left:2rem;
-                   margin-top:5rem;
-                  `;
-            asset_rating_form.append(note);
+            // const note = document.createElement("div");
+            // note.classList.add('asset-info');
+            // note.innerText = `* Please only update the Asset Condition Assessment if it differs from above`;
+            // note.style.cssText = `
+            //       padding-left:2rem;
+            //       margin-top:5rem;
+            //       `;
+            // asset_rating_form.append(note);
         },
         error: function(error) {
             console.log(response);
@@ -1051,7 +1066,8 @@ function get_asset_values(
     asset_rating_options,
     asset_notes,
     asset_image,
-    asset_id_action_button
+    asset_id_action_button,
+    multiple_asset_id
 ) {
     let form = document.querySelector("form#public_form");
     const asset_rating_chosen = document.querySelector("#fields_1987_chosen");
@@ -1072,7 +1088,7 @@ function get_asset_values(
         form = document.querySelector("form#process");
     }
 
-    get_asset_name(asset_rating_options, asset_id_action_button);
+    get_asset_name(asset_rating_options, asset_id_action_button, multiple_asset_id);
 
     const button = document.querySelector('button[type="submit"]');
 
@@ -1231,29 +1247,49 @@ function hide_asset_notes_image(
     });
 }
 
-function show_related_assets_dropdown(asset_ids) {
+
+function get_asset_from_dropdown(assets_dropdown, asset_rating_options) {
+    assets_dropdown.addEventListener("change", function() {
+        let asset_id = assets_dropdown.value;
+        if (asset_id !== 'Select Asset') {
+            asset_id = parseInt(asset_id);
+            if (document.querySelector('.asset-info')) {
+                document.querySelector('.asset-info').style.display = "none";
+            }
+            //get_asset_name(asset_rating_options, false, asset_id);
+            get_asset_values(
+                asset_rating,
+                asset_rating_form,
+                asset_rating_options,
+                asset_notes,
+                asset_image,
+                false,
+                asset_id
+            );
+        } else {
+            if (document.querySelector('.asset-info')) {
+                document.querySelector('.asset-info').style.display = "none";
+            }
+        }
+    });
+}
+
+
+function show_related_assets_dropdown(asset_ids, assets_dropdown) {
     let url = instance_url +
-        `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=2216`;
+        `?module=antevasin/unicloud/public_process&action=get_related_assets&asset_ids=${asset_ids}&token=${token}`;
     $.ajax({
         url: url,
         type: "GET",
         success: function(response) {
             let data = JSON.parse(response);
-            let work_activity_list = data[2216];
-            let work_activity_ids = work_activity_list.split(',');
-            //alert(work_activity_ids);
-
-            work_activity_ids.forEach(function(id) {
-                work_activity_options.forEach(function(option) {
-
-                    if (id == option.value) {
-                        option.setAttribute('selected', true);
-                    }
-                });
+            console.log(data);
+            let option = new Option('Select Asset');
+            assets_dropdown.add(option);
+            data.forEach(function(asset) {
+                let option = new Option(asset['name'], asset['id']);
+                assets_dropdown.add(option);
             });
-
-            $(`#fields_${field_id}`).trigger('chosen:updated');
-            get_default_tags(field_id);
         },
         error: function(error) {
             console.log(error);
@@ -1294,6 +1330,20 @@ function accept_job_date(field_id, job_accept_date, work_activity, site_review, 
     })
 }
 
+function get_tech_activity_answers() {
+    let answers = {};
+    let questions = $('.tech-answer:checked');
+    $.each(questions, function(index, field) {
+        let question_id = $(field).data('answer');
+        let question = $('#question_' + question_id).val();
+        let answer = $(field).val();
+        let additional_info = $('#answer_additional_' + question_id).val();
+        answers[question_id] = { "question": question, "answer": answer, "info": additional_info };
+    });
+    return JSON.stringify(answers);
+}
+
+
 function sign_in_acknowledgement(button_message, field_id, work_activity, site_review, action_button) {
     let form;
     const button = document.querySelector("button[type='submit']");
@@ -1302,12 +1352,31 @@ function sign_in_acknowledgement(button_message, field_id, work_activity, site_r
         e.preventDefault();
         $.getScript('https://source.unicloud.co.nz/js/tech_questions.js', function() {
             let disable_sign_in_button = enable_tech_activity_sign_in();
-            console.log("disable sign in button: " + disable_sign_in_button);
+            //console.log("disable sign in button: " + disable_sign_in_button);
 
             if (!disable_sign_in_button) {
                 if (work_activity.checked && site_review.checked) {
                     $(`#fields_${field_id}`).prop('disabled', false).trigger("chosen:updated");
-                    form.submit();
+                    // let answers = get_tech_activity_answers();
+                    if (!technician_id) {
+                        technician_id = get_technician_id();
+                    }
+                    let url = instance_url +
+                        `?module=antevasin/facilities/public_process&action=post_tech_activity_answers&parent_item_id=${technician_id}&token=${token}`;
+                    $.ajax({
+                        url: url,
+                        type: "POST",
+                        data: { answers: get_tech_activity_answers() },
+                        success: function(response) {
+                            console.log(response);
+                            form.submit();
+                        },
+                        error: function(error) {
+                            console.log(error);
+                        },
+                    });
+
+
                 } else {
                     button_message.innerText = 'You have to review the site hazards and work activity before signing in!'
                 }
@@ -1468,18 +1537,29 @@ function chosen_container_width() {
 
 function site_safety_documents() {
     const modal_footer = document.querySelector('.modal-footer');
+    const button = document.querySelector('button[type="submit"]');
     let path = form_path.split('/');
     let documents_path = `${path[0]}/${path[1]}/${path[2]}/85`;
     let site_safety_documents_path = `${instance_url}?module=items/items&path=${documents_path}`;
     const link = document.createElement('a');
-    link.innerText = 'SITE SAFETY DOCUMENTS';
+    link.innerText = 'Site Safety Documents';
     link.setAttribute('href', site_safety_documents_path);
     link.setAttribute('class', 'btn');
     link.style.cssText = `
         background-color:#197278;
         color:white;
+        margin-top:0.5rem;
     `;
     modal_footer.append(link);
+    button.style.cssText = `
+        margin-top:0.5rem;
+        text-transform:capitalize;
+    `;
+    button_message.style.cssText = `
+        color:#d32f2f;
+        font-size:1.5rem;
+        font-weight:500;
+    `;
 }
 
 function get_technician_id() {
@@ -1515,10 +1595,6 @@ function get_tech_questions(action_button) {
             console.log(error);
         },
     });
-}
-
-function get_tech_activity_answers() {
-
 }
 
 function get_instance_url() {
