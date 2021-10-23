@@ -166,7 +166,7 @@ else if (form_id == 10) {
     let sign_out_action_url =
         instance_url +
         `?module=ext/public/form&id=11&parent_item_id=${parent_id}&technician_id=${technician_id}&location=${map_location}&path=${form_path}&token=${token}`;
-    let sign_out_button_html = `<button type="button" onclick="redirect_form( '${sign_out_action_url}' )" class="btn btn-primary">Sign Out</button>`;
+    let sign_out_button_html = `<button type="button" style="margin-top:0.5rem;" onclick="redirect_form( '${sign_out_action_url}' )" class="btn btn-primary">Sign Out</button>`;
     $(".btn-primary").after(sign_out_button_html);
     //change action url of public form
     const public_form = document.getElementById("public_form");
@@ -178,7 +178,8 @@ else if (form_id == 10) {
         `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&form_id=${form_id}&field_ids=1760,1769`;
 
     update_time_values(time_values_action_url);
-    if (asset_id) {
+    hide_asset_chosen();
+     if (asset_id) {
         let asset_ids = asset_id.split(',');
         if (asset_ids.length == 1) {
             get_asset_values(
@@ -195,11 +196,19 @@ else if (form_id == 10) {
                 asset_notes,
                 asset_image
             );
-        } else {
-            show_related_assets_dropdown(asset_ids);
+            asset_dropdown_form.style.display = "none";
+        } 
+        //multiple assets
+        else {
+            asset_dropdown_form.style.display = "block";
+            show_related_assets_dropdown(asset_ids, assets_dropdown);
+            get_asset_from_dropdown(assets_dropdown, asset_rating_options);
         }
-    } else {
+    }
+    //no asset
+    else {
         asset_rating_form.style.display = "none";
+        asset_dropdown_form.style.display = "none";
     }
 
     //code to display only associated contractor job
@@ -232,7 +241,7 @@ else if (form_id == 11) {
     );
     departure_location(departure_location_form, departure_location_field);
     hide_visit_site_again(visit_site_dropdown, visit_site);
-
+    hide_asset_chosen();
     if (asset_id) {
         let asset_ids = asset_id.split(',');
         if (asset_ids.length == 1) {
@@ -251,7 +260,7 @@ else if (form_id == 11) {
                 asset_image
             );
             asset_dropdown_form.style.display = "none";
-        }
+        } 
         //multiple assets
         else {
             asset_dropdown_form.style.display = "block";
@@ -319,6 +328,54 @@ else if (form_id == 15) {
     hide_tab([128, 136]);
     decline_job_date(job_decline_date, job_decline_reason, required_message);
     display_loader();
+}
+
+//update asset form
+else if (form_id == 16) {
+    //check_status_assigned_declined();
+    action_url =
+        instance_url +
+        `?module=antevasin/unicloud/public_process&action=run&id=162&path=${form_path}/77-${technician_id}&token=${token}&form_id=${form_id}`;
+    //console.log("URL: " + action_url);
+
+    //change action url of public form
+    const public_form = document.getElementById("public_form");
+    public_form.action = action_url;
+    show_contractor_job(parent_id);
+    hide_tab([128]);
+    display_loader();
+    hide_asset_chosen();
+    if (asset_id) {
+        let asset_ids = asset_id.split(',');
+        if (asset_ids.length == 1) {
+            get_asset_values(
+                asset_rating,
+                asset_rating_form,
+                asset_rating_options,
+                asset_notes,
+                asset_image
+            );
+            hide_asset_notes_image(
+                asset_rating,
+                asset_notes_form,
+                asset_image_form,
+                asset_notes,
+                asset_image
+            );
+            asset_dropdown_form.style.display = "none";
+        } 
+        //multiple assets
+        else {
+            asset_dropdown_form.style.display = "block";
+            show_related_assets_dropdown(asset_ids, assets_dropdown);
+            get_asset_from_dropdown(assets_dropdown, asset_rating_options);
+        }
+    }
+    //no asset
+    else {
+        asset_rating_form.style.display = "none";
+        asset_dropdown_form.style.display = "none";
+    }
 }
 
 function update_departure_time() {
@@ -999,12 +1056,20 @@ function display_loader() {
     }, 1000);
 }
 
+function hide_asset_chosen() {
+     window.addEventListener("load", function() {
+        const asset_rating_chosen = document.querySelector("#fields_1987_chosen");
+        asset_rating.style.display = "block";
+        asset_rating_chosen.style.display = "none";
+    });
+}
 
-function get_asset_name(asset_rating_options, asset_id_action_button, mutiple_asset_id = false) {
+function get_asset_name(asset_rating_options, asset_id_action_button, mutiple_asset_id=false) {
     if (asset_id_action_button) {
         asset_id = asset_id_action_button;
-    } else if (mutiple_asset_id) {
-        asset_id = mutiple_asset_id;
+    }
+    else if( mutiple_asset_id ) {
+       asset_id = mutiple_asset_id; 
     }
     let current_rating;
     let asset_url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_field_values&item=52-${asset_id}&token=${token}&field_ids=762,896,973`;
@@ -1087,18 +1152,16 @@ function get_asset_values(
         public_form = false;
         form = document.querySelector("form#process");
     }
+    
+    else if(multiple_asset_id){
+        asset_id = multiple_asset_id;
+    }
 
     get_asset_name(asset_rating_options, asset_id_action_button, multiple_asset_id);
 
     const button = document.querySelector('button[type="submit"]');
 
     asset_rating.style.display = "block";
-
-    window.addEventListener("load", function() {
-        const asset_rating_chosen = document.querySelector("#fields_1987_chosen");
-        asset_rating.style.display = "block";
-        asset_rating_chosen.style.display = "none";
-    });
 
     let url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=1758`;
     //console.log('asset '+asset_url);
@@ -1111,10 +1174,11 @@ function get_asset_values(
             //console.log("user id:"+user_id);
             button.addEventListener("click", function(e) {
                 e.preventDefault();
-
+                button.style.display="none";
+                document.querySelector('.primary-modal-action-loading').style.visibility="visible";
                 let rating = asset_rating.value;
                 if (rating !== "") {
-                    console.log("rating: " + rating);
+                    console.log("rating: " + rating+ "  asset id:"+asset_id);
                     const rating_value_url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_condition_rating_value&rating=${rating}&asset_id=${asset_id}&token=${token}`;
                     $.ajax({
                         url: rating_value_url,
@@ -1127,7 +1191,7 @@ function get_asset_values(
                             const today = new Date();
                             let ms = Date.parse(today);
                             const assessment_date = parseInt(ms / 1000);
-                            // console.log(rating+"   " +rating_value+"   "+assessment_date);
+                             console.log(rating+"   " +rating_value+"   "+assessment_date);
 
                             const notes = asset_notes.value;
                             const image = asset_image.value;
@@ -1173,6 +1237,7 @@ function update_asset_insert_history(
     form,
     asset_image
 ) {
+    const button = document.querySelector('button[type="submit"]');
     let update_form = $("#public_form")[0];
     if (asset_id_action_button) {
         asset_id = asset_id_action_button;
@@ -1192,21 +1257,23 @@ function update_asset_insert_history(
             asset_image.setAttribute("name", "fields[2031]");
 
             let history_image_url = `${instance_url}?module=items/processes&action=run&id=155&path=${history_path}/52-${asset_id}/88-${history_id}&token=${token}&redirect_to=items_info`;
-
+            //console.log(history_image_url);
             var formData = new FormData(update_form);
+           
             $.ajax({
                 url: history_image_url,
                 type: "POST",
+                data: formData,
                 processData: false,
                 contentType: false,
-                data: formData,
+                cache:false,
                 success: function(response) {
-                    console.log(response);
+                    //console.log(response);
                     asset_image.id = "fields_2038";
                     asset_image.setAttribute("name", "fields[2038]");
                     if (visit_dropdown_value != 807) {
                         console.log("asset submit");
-                        form.submit();
+                        //form.submit();
                     }
                 },
                 error: function(error) {
@@ -1250,14 +1317,14 @@ function hide_asset_notes_image(
 
 function get_asset_from_dropdown(assets_dropdown, asset_rating_options) {
     assets_dropdown.addEventListener("change", function() {
-        let asset_id = assets_dropdown.value;
-        if (asset_id !== 'Select Asset') {
-            asset_id = parseInt(asset_id);
-            if (document.querySelector('.asset-info')) {
-                document.querySelector('.asset-info').style.display = "none";
-            }
-            //get_asset_name(asset_rating_options, false, asset_id);
-            get_asset_values(
+      let asset_id = assets_dropdown.value;
+      if(asset_id!=='Select Asset') {
+          asset_id = parseInt(asset_id);
+          if(document.querySelector('.asset-info')) {
+              document.querySelector('.asset-info').style.display="none";
+          }
+          //get_asset_name(asset_rating_options, false, asset_id);
+          get_asset_values(
                 asset_rating,
                 asset_rating_form,
                 asset_rating_options,
@@ -1266,11 +1333,12 @@ function get_asset_from_dropdown(assets_dropdown, asset_rating_options) {
                 false,
                 asset_id
             );
-        } else {
-            if (document.querySelector('.asset-info')) {
-                document.querySelector('.asset-info').style.display = "none";
-            }
-        }
+      }
+      else {
+          if(document.querySelector('.asset-info')) {
+              document.querySelector('.asset-info').style.display="none";
+          }
+      }
     });
 }
 
@@ -1283,10 +1351,10 @@ function show_related_assets_dropdown(asset_ids, assets_dropdown) {
         type: "GET",
         success: function(response) {
             let data = JSON.parse(response);
-            console.log(data);
+            //console.log(data);
             let option = new Option('Select Asset');
             assets_dropdown.add(option);
-            data.forEach(function(asset) {
+            data.forEach(function(asset){
                 let option = new Option(asset['name'], asset['id']);
                 assets_dropdown.add(option);
             });
