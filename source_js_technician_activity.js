@@ -74,6 +74,10 @@ const update_work_activity = document.querySelector("#fields_2260");
 const assets_dropdown = document.querySelector("#fields_2273");
 const asset_dropdown_form = document.querySelector(".form-group-2273");
 
+//show_all_assets_filter() arguments
+const show_all_assets = document.querySelector("#fields_2311");
+const show_all_assets_form = document.querySelector(".form-group-2311");
+
 //public form url values
 let path = window.location.href;
 const url = new URLSearchParams(path);
@@ -384,6 +388,7 @@ else if (form_id == 16) {
                         asset_dropdown_form.style.display = "block";
                         show_related_assets_dropdown(asset_ids, assets_dropdown);
                         get_asset_from_dropdown(assets_dropdown, asset_rating_options, 'public_form_16');
+                        show_all_assets_filter(asset_ids, assets_dropdown);
                     }
                 }
                 //no asset
@@ -1209,9 +1214,7 @@ function get_asset_values(
             //console.log("user id:"+user_id);
             button.addEventListener("click", function(e) {
                 e.preventDefault();
-                button.style.display = "none";
-                // document.querySelector('.primary-modal-action-loading').style.visibility="visible";
-                $('.primary-modal-action-loading').css('visibility', 'visible');
+
                 let rating = asset_rating.value;
                 if (rating !== "") {
                     console.log("rating: " + rating + "  asset id:" + asset_id);
@@ -1232,20 +1235,29 @@ function get_asset_values(
                             const notes = asset_notes.value;
                             const image = asset_image.value;
 
-                            //console.log("notes   " +notes+"Image " +image);
-                            update_asset_insert_history(
-                                rating,
-                                rating_value,
-                                assessment_date,
-                                user_id,
-                                notes,
-                                image,
-                                asset_id_action_button,
-                                update_asset_public_form,
-                                form,
-                                asset_image
-                            );
-                            //console.log( assessment_date );
+                            let asset_notes_image_status = check_asset_notes_image(notes, image);
+
+                            if (notes && image) {
+                                //console.log("notes   " +notes+"Image " +image);
+                                update_asset_insert_history(
+                                    rating,
+                                    rating_value,
+                                    assessment_date,
+                                    user_id,
+                                    notes,
+                                    image,
+                                    asset_id_action_button,
+                                    update_asset_public_form,
+                                    form,
+                                    asset_image
+                                );
+                                button.style.display = "none";
+                                // document.querySelector('.primary-modal-action-loading').style.visibility="visible";
+                                $('.primary-modal-action-loading').css('visibility', 'visible');
+                                button_message.innerText = "";
+                            } else {
+                                button_message.innerText = "Asset Notes and Image required!";
+                            }
                         },
                         error: function(error) {},
                     });
@@ -1311,24 +1323,16 @@ function update_asset_insert_history(
                     asset_image.setAttribute("name", "fields[2038]");
                     if (visit_dropdown_value != 807) {
                         console.log("asset submit");
-                        if (update_asset_public_form) {
 
-                            let src = '';
-                            if (path.includes("&updated_asset=")) {
-                                let lastIndex = (path.lastIndexOf('&'));
-                                //lastIndex++;
-                                console.log(lastIndex);
-                                path = path.substring(0, lastIndex);
-                            }
-                            let updated_asset = sessionStorage.getItem('updated_asset');
+                        let updated_asset = sessionStorage.getItem('updated_asset');
+                        if (updated_asset) {
+                            updated_asset = `${updated_asset},${asset_id}`;
+                            sessionStorage.setItem('updated_asset', updated_asset);
+                        } else sessionStorage.setItem('updated_asset', asset_id);
 
-                            if (updated_asset) {
-                                updated_asset = `${updated_asset},${asset_id}`;
-                            } else sessionStorage.setItem('updated_asset', asset_id);
+                        if (update_asset_public_form) window.location.href = path;
+                        else form.submit();
 
-                            window.location.href = `${path}&updated_asset=${asset_id}`;
-
-                        } else form.submit();
                     }
                 },
                 error: function(error) {
@@ -1342,19 +1346,8 @@ function update_asset_insert_history(
     });
 }
 
-function update_asset_dropdown(updated_asset_id) {
-    if (updated_asset_id) {
-        let assets_dropdown_options = document.querySelectorAll('#fields_2273 option');
-        assets_dropdown_options.forEach(function(option) {
-            let id = option.value;
-            if (id == updated_asset_id) {
-                console.log(id);
-                option.style.display = "none";
-            }
-        })
-
-    }
-
+function check_asset_notes_image(notes, image) {
+    if (notes.value && notes.image) return true;
 }
 
 function hide_asset_notes_image(
@@ -1426,7 +1419,12 @@ function get_asset_from_dropdown(assets_dropdown, asset_rating_options, update_a
 }
 
 
-function show_related_assets_dropdown(asset_ids, assets_dropdown) {
+function show_related_assets_dropdown(asset_ids, assets_dropdown, show_all) {
+    let updated_asset = sessionStorage.getItem('updated_asset');
+    let updated_asset_ids;
+    if (updated_asset) updated_asset_ids = updated_asset.split(',');
+    console.log(updated_asset_ids);
+
     let url = instance_url +
         `?module=antevasin/unicloud/public_process&action=get_related_assets&asset_ids=${asset_ids}&token=${token}`;
     $.ajax({
@@ -1438,23 +1436,39 @@ function show_related_assets_dropdown(asset_ids, assets_dropdown) {
             let option = new Option('Select Asset');
             assets_dropdown.add(option);
 
-            data.forEach(function(asset) {
-                if (asset['id'] != updated_asset_id) {
-                    let option = new Option(asset['name'], asset['id']);
-                    assets_dropdown.add(option);
+            if (!show_all) {
+                if (updated_asset) {
+                    updated_asset_ids.forEach(function(updated_asset_id) {
+                        data.forEach(function(asset, index) {
+                            if (updated_asset_id == asset['id']) {
+                                data.splice(index, 1);
+                                //console.log(data);
+                            }
+                        })
+                    })
                 }
-            });
-            let updated_asset = sessionStorage.getItem('updated_asset');
-
-            if (updated_asset) {
-                //alert(updated_asset);
             }
+
+            data.forEach(function(asset) {
+                let option = new Option(asset['name'], asset['id']);
+                assets_dropdown.add(option);
+            });
+
             //update_asset_dropdown(updated_asset_id);
         },
         error: function(error) {
             console.log(error);
         },
     });
+}
+
+function show_all_assets_filter(asset_ids, assets_dropdown) {
+    show_all_assets.addEventListener('click', function() {
+        let assets_dropdown_options = document.querySelectorAll('#fields_2273 option');
+        assets_dropdown_options.forEach(option => option.remove());
+        if (show_all_assets.checked) show_related_assets_dropdown(asset_ids, assets_dropdown, true);
+        else show_related_assets_dropdown(asset_ids, assets_dropdown, false);
+    })
 }
 
 function accept_job_check(work_activity, site_review, button) {
