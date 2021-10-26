@@ -75,7 +75,7 @@ const assets_dropdown = document.querySelector("#fields_2273");
 const asset_dropdown_form = document.querySelector(".form-group-2273");
 
 //public form url values
-const path = window.location.href;
+let path = window.location.href;
 const url = new URLSearchParams(path);
 const parent_id = url.get("parent_item_id");
 const form_path = url.get("path");
@@ -84,6 +84,7 @@ const token = document.getElementById("form_session_token").value;
 const form_id = url.get("id");
 const map_location = url.get("location");
 let asset_id = url.get("asset");
+let updated_asset_id = url.get("updated_asset");
 const full_path = form_path.split("/");
 const site_id = full_path[2];
 const contractor = full_path[3];
@@ -93,7 +94,6 @@ const contractor_id = contractor.split('-')[1];
 let action_url;
 let visit_dropdown_value;
 let public_form = true;
-
 //link to site safety documents
 site_safety_documents();
 
@@ -301,7 +301,7 @@ else if (form_id == 14) {
     let decline_job_action_url =
         instance_url +
         `?module=ext/public/form&id=15&parent_item_id=${parent_id}&technician_id=${technician_id}&path=${form_path}&token=${token}`;
-    let decline_job_button_html = `<button style="background-color:#d32f2f; border-color:#d32f2f;" type="button" onclick="redirect_form( '${decline_job_action_url}' )" class="btn btn-primary">Decline Job</button>`;
+    let decline_job_button_html = `<button style="background-color:#d32f2f; margin-top:0.5rem; border-color:#d32f2f;" type="button" onclick="redirect_form( '${decline_job_action_url}' )" class="btn btn-primary">Decline Job</button>`;
     $(".btn-primary").after(decline_job_button_html);
 
     show_contractor_job(parent_id);
@@ -347,6 +347,7 @@ else if (form_id == 16) {
     hide_tab([128]);
     display_loader();
     hide_asset_chosen();
+
     //let contractor_job = check_contractor_job_open();
 
     let check_status_url = instance_url +
@@ -356,7 +357,7 @@ else if (form_id == 16) {
         type: "GET",
         success: function(response) {
             let data = JSON.parse(response);
-            console.log(data);
+            //console.log(data);
             if (data[1713] == 432 || data[1713] == 434) {
                 if (asset_id) {
                     let asset_ids = asset_id.split(',');
@@ -1310,8 +1311,24 @@ function update_asset_insert_history(
                     asset_image.setAttribute("name", "fields[2038]");
                     if (visit_dropdown_value != 807) {
                         console.log("asset submit");
-                        if (update_asset_public_form) window.location.href = path;
-                        else form.submit();
+                        if (update_asset_public_form) {
+
+                            let src = '';
+                            if (path.includes("&updated_asset=")) {
+                                let lastIndex = (path.lastIndexOf('&'));
+                                //lastIndex++;
+                                console.log(lastIndex);
+                                path = path.substring(0, lastIndex);
+                            }
+                            let updated_asset = sessionStorage.getItem('updated_asset');
+
+                            if (updated_asset) {
+                                updated_asset = `${updated_asset},${asset_id}`;
+                            } else sessionStorage.setItem('updated_asset', asset_id);
+
+                            window.location.href = `${path}&updated_asset=${asset_id}`;
+
+                        } else form.submit();
                     }
                 },
                 error: function(error) {
@@ -1323,6 +1340,21 @@ function update_asset_insert_history(
             console.log(response);
         },
     });
+}
+
+function update_asset_dropdown(updated_asset_id) {
+    if (updated_asset_id) {
+        let assets_dropdown_options = document.querySelectorAll('#fields_2273 option');
+        assets_dropdown_options.forEach(function(option) {
+            let id = option.value;
+            if (id == updated_asset_id) {
+                console.log(id);
+                option.style.display = "none";
+            }
+        })
+
+    }
+
 }
 
 function hide_asset_notes_image(
@@ -1405,10 +1437,19 @@ function show_related_assets_dropdown(asset_ids, assets_dropdown) {
             //console.log(data);
             let option = new Option('Select Asset');
             assets_dropdown.add(option);
+
             data.forEach(function(asset) {
-                let option = new Option(asset['name'], asset['id']);
-                assets_dropdown.add(option);
+                if (asset['id'] != updated_asset_id) {
+                    let option = new Option(asset['name'], asset['id']);
+                    assets_dropdown.add(option);
+                }
             });
+            let updated_asset = sessionStorage.getItem('updated_asset');
+
+            if (updated_asset) {
+                //alert(updated_asset);
+            }
+            //update_asset_dropdown(updated_asset_id);
         },
         error: function(error) {
             console.log(error);
@@ -1522,20 +1563,22 @@ function decline_job_date(job_decline_date, job_decline_reason, required_message
 
 function disable_work_activity(update_work_activity, field_id) {
     $(`#fields_${field_id}`).prop('disabled', true).trigger("chosen:updated");
-    update_work_activity.addEventListener('change', function() {
-        if (update_work_activity.checked) {
-            $(`#fields_${field_id}`).prop('disabled', false).trigger("chosen:updated");
-        } else {
-            $(`#fields_${field_id}`).chosen().val(default_chosen_ids);
-            $(`#fields_${field_id}`).trigger('chosen:updated');
-            if (default_chosen_ids != null) work_activity_tags(default_chosen_ids, field_id);
-            else {
-                default_chosen_ids = [0];
-                work_activity_tags(default_chosen_ids, field_id);
+    if (update_work_activity) {
+        update_work_activity.addEventListener('change', function() {
+            if (update_work_activity.checked) {
+                $(`#fields_${field_id}`).prop('disabled', false).trigger("chosen:updated");
+            } else {
+                $(`#fields_${field_id}`).chosen().val(default_chosen_ids);
+                $(`#fields_${field_id}`).trigger('chosen:updated');
+                if (default_chosen_ids != null) work_activity_tags(default_chosen_ids, field_id);
+                else {
+                    default_chosen_ids = [0];
+                    work_activity_tags(default_chosen_ids, field_id);
+                }
+                $(`#fields_${field_id}`).prop('disabled', true).trigger("chosen:updated");
             }
-            $(`#fields_${field_id}`).prop('disabled', true).trigger("chosen:updated");
-        }
-    })
+        });
+    }
 }
 
 function update_select_chosen(work_activity_options, field_id) {
