@@ -50,9 +50,20 @@ const asset_rating_form = document.querySelector(".form-group-1987");
 const asset_notes = document.querySelector("#fields_2039");
 const asset_image = document.querySelector("#fields_2038");
 
+//get_asset_values_qr arguments
+const asset_rating_qr = document.querySelector("#fields_973");
+const asset_rating_options_qr = document.querySelectorAll("#fields_973 option");
+const asset_rating_form_qr = document.querySelector(".form-group-973");
+const asset_notes_qr = document.querySelector("#fields_2319");
+const asset_image_qr = document.querySelector("#fields_2320");
+
 //hide_asset_notes_image() arguments
 const asset_notes_form = document.querySelector(".form-group-2039");
 const asset_image_form = document.querySelector(".form-group-2038");
+
+//hide_asset_notes_image_qrcode() arguments
+const asset_notes_form_qr = document.querySelector(".form-group-2319");
+const asset_image_form_qr = document.querySelector(".form-group-2320");
 
 //accept_job_date() arguments
 const job_accept_date = document.querySelector("#fields_2248");
@@ -88,6 +99,7 @@ const token = document.getElementById("form_session_token").value;
 const form_id = url.get("id");
 const map_location = url.get("location");
 let asset_id = url.get("asset");
+let user_id = url.get("user_id");
 let updated_asset_id = url.get("updated_asset");
 const full_path = form_path.split("/");
 const site_id = full_path[2];
@@ -382,6 +394,7 @@ else if (form_id == 16) {
                             asset_image
                         );
                         asset_dropdown_form.style.display = "none";
+                        show_all_assets_form.style.display = "none";
                     }
                     //multiple assets
                     else {
@@ -413,6 +426,41 @@ else if (form_id == 16) {
     });
 
 }
+
+// update asset condition from through QR code
+else if (form_id == 17) {
+    action_url =
+        instance_url +
+        `?module=antevasin/unicloud/public_process&action=run&id=163&path=${form_path}&token=${token}&form_id=${form_id}`;
+    //console.log("URL: " + action_url);
+
+    //change action url of public form
+    const public_form = document.getElementById("public_form");
+    public_form.action = action_url;
+
+    hide_tab([75]);
+    display_loader();
+    show_contractor_job(parent_id);
+    hide_asset_chosen_qr();
+
+    get_asset_values_qrcode(
+        asset_rating_qr,
+        asset_rating_form_qr,
+        asset_rating_options_qr,
+        asset_notes_qr,
+        asset_image_qr,
+        user_id
+    );
+    hide_asset_notes_image(
+        asset_rating_qr,
+        asset_notes_form_qr,
+        asset_image_form_qr,
+        asset_notes_qr,
+        asset_image_qr
+    );
+}
+
+
 
 function update_departure_time() {
     let arrival_on_site = document.querySelector("#fields_1762");
@@ -1105,7 +1153,16 @@ function hide_asset_chosen() {
     });
 }
 
-function get_asset_name(asset_rating_options, asset_id_action_button, mutiple_asset_id = false) {
+function hide_asset_chosen_qr() {
+    asset_rating_qr.style.display = "block";
+    window.addEventListener("load", function() {
+        const asset_rating_chosen = document.querySelector("#fields_973_chosen");
+        asset_rating_qr.style.display = "block";
+        asset_rating_chosen.style.display = "none";
+    });
+}
+
+function get_asset_name(asset_rating_options, asset_rating_form, asset_id_action_button, mutiple_asset_id = false) {
     if (asset_id_action_button) {
         asset_id = asset_id_action_button;
     } else if (mutiple_asset_id) {
@@ -1165,6 +1222,83 @@ function get_asset_name(asset_rating_options, asset_id_action_button, mutiple_as
     });
 }
 
+
+function get_asset_values_qrcode(
+    asset_rating_qr,
+    asset_rating_form_qr,
+    asset_rating_options_qr,
+    asset_notes_qr,
+    asset_image_qr,
+    user_id
+) {
+    let form = document.querySelector("form#public_form");
+    const asset_rating_chosen = document.querySelector("#fields_973_chosen");
+    const signout_form = document.querySelector("form#process");
+    get_asset_name(asset_rating_options_qr, asset_rating_form_qr);
+
+    const button = document.querySelector('button[type="submit"]');
+
+    asset_rating_qr.style.display = "block";
+    console.log("user id:" + user_id);
+    button.addEventListener("click", function(e) {
+        e.preventDefault();
+
+        let rating = asset_rating_qr.value;
+        if (rating !== "") {
+            console.log("rating: " + rating + "  asset id:" + asset_id);
+            const rating_value_url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_condition_rating_value&rating=${rating}&asset_id=${asset_id}&token=${token}`;
+            $.ajax({
+                url: rating_value_url,
+                type: "GET",
+                success: function(response) {
+                    //console.log(data);
+
+                    let rating_value = response;
+
+                    const today = new Date();
+                    let ms = Date.parse(today);
+                    const assessment_date = parseInt(ms / 1000);
+                    console.log(rating + "   " + rating_value + "   " + assessment_date);
+
+                    const notes = asset_notes_qr.value;
+                    const image = asset_image_qr.value;
+
+                    if (notes && image) {
+                        console.log("notes   " + notes + "Image " + image);
+                        update_asset_insert_history(
+                            rating,
+                            rating_value,
+                            assessment_date,
+                            user_id,
+                            notes,
+                            image,
+                            false,
+                            false,
+                            form,
+                            asset_image_qr,
+                            true
+                        );
+                        button.style.display = "none";
+                        // document.querySelector('.primary-modal-action-loading').style.visibility="visible";
+                        $('.primary-modal-action-loading').css('visibility', 'visible');
+                        button_message.innerText = "";
+                    } else {
+                        button_message.innerText = "Asset Notes and Image required!";
+                    }
+                },
+                error: function(error) {},
+            });
+        } else {
+            // if (visit_dropdown_value != 807) {
+            //     console.log("asset submit via public form");
+            //     form.submit();
+            // }
+            alert();
+        }
+    });
+
+};
+
 function get_asset_values(
     asset_rating,
     asset_rating_form,
@@ -1197,7 +1331,7 @@ function get_asset_values(
         asset_id = multiple_asset_id;
     }
 
-    get_asset_name(asset_rating_options, asset_id_action_button, multiple_asset_id);
+    get_asset_name(asset_rating_options, asset_rating_form, asset_id_action_button, multiple_asset_id);
 
     const button = document.querySelector('button[type="submit"]');
 
@@ -1235,8 +1369,6 @@ function get_asset_values(
                             const notes = asset_notes.value;
                             const image = asset_image.value;
 
-                            let asset_notes_image_status = check_asset_notes_image(notes, image);
-
                             if (notes && image) {
                                 //console.log("notes   " +notes+"Image " +image);
                                 update_asset_insert_history(
@@ -1249,7 +1381,8 @@ function get_asset_values(
                                     asset_id_action_button,
                                     update_asset_public_form,
                                     form,
-                                    asset_image
+                                    asset_image,
+                                    false
                                 );
                                 button.style.display = "none";
                                 // document.querySelector('.primary-modal-action-loading').style.visibility="visible";
@@ -1285,7 +1418,8 @@ function update_asset_insert_history(
     asset_id_action_button,
     update_asset_public_form,
     form,
-    asset_image
+    asset_image,
+    asset_image_qr
 ) {
     const button = document.querySelector('button[type="submit"]');
     let update_form = $("#public_form")[0];
@@ -1318,9 +1452,15 @@ function update_asset_insert_history(
                 contentType: false,
                 cache: false,
                 success: function(response) {
-                    //console.log(response);
-                    asset_image.id = "fields_2038";
-                    asset_image.setAttribute("name", "fields[2038]");
+                    console.log(response);
+                    if (asset_image_qr) {
+                        asset_image.id = "fields_2320";
+                        asset_image.setAttribute("name", "fields[2320]");
+                    } else {
+                        asset_image.id = "fields_2038";
+                        asset_image.setAttribute("name", "fields[2038]");
+                    }
+
                     if (visit_dropdown_value != 807) {
                         console.log("asset submit");
 
@@ -1344,10 +1484,6 @@ function update_asset_insert_history(
             console.log(response);
         },
     });
-}
-
-function check_asset_notes_image(notes, image) {
-    if (notes.value && notes.image) return true;
 }
 
 function hide_asset_notes_image(
@@ -1423,7 +1559,7 @@ function show_related_assets_dropdown(asset_ids, assets_dropdown, show_all) {
     let updated_asset = sessionStorage.getItem('updated_asset');
     let updated_asset_ids;
     if (updated_asset) updated_asset_ids = updated_asset.split(',');
-    console.log(updated_asset_ids);
+    // console.log(updated_asset_ids);
 
     let url = instance_url +
         `?module=antevasin/unicloud/public_process&action=get_related_assets&asset_ids=${asset_ids}&token=${token}`;
@@ -1828,6 +1964,38 @@ function get_tech_questions(action_button) {
             console.log(error);
         },
     });
+}
+
+function check_contractor_onsite_due_date() {
+    const button = document.querySelector("button[type='submit']");
+    const form = document.querySelector("#process");
+    const completion_due = document.querySelector('#fields_1717');
+    const onsite_due = document.querySelector('#fields_1716');
+    const message = document.querySelector('#form-error-container');
+    const contractor = document.querySelector('#fields_1714');
+    const description = document.querySelector('#fields_1718');
+    const service_type = document.querySelector('#fields_1740_chosen');
+
+    completion_due.value = "", onsite_due.value = "";
+
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        //alert(completion_due.value+" "+onsite_due.value); 
+        if (onsite_due.value > completion_due.value) {
+            message.innerText = 'Onsite Due Date can\'t be greater than Completion Due Date!';
+        } else {
+            message.innerText = '';
+            let service_type = $(`#fields_1740`).chosen().val();
+            if (service_type && onsite_due.value && completion_due.value && contractor.value && description.value) {
+                //alert('submit');
+                form.submit();
+            } else {
+                message.innerText = '*Fill all the required fields!';
+            }
+
+        }
+    })
+
 }
 
 function get_instance_url() {
