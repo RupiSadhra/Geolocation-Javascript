@@ -3,7 +3,6 @@ let instance_url = get_instance_url();
 //get_technician_activity() arguments
 const arrival_location = document.querySelector("#fields_1759");
 const arrival_form = document.querySelector(".form-group-1759");
-const override_location_dropdown = document.querySelector("#fields_1765");
 const override_location = document.querySelector(".form-group-1766");
 const button_message = document.getElementById("form-error-container");
 
@@ -13,6 +12,8 @@ const arrival_on_site = document.querySelector("#fields_1762");
 const actual_arrival_on_site = document.querySelector("#fields_1862");
 const override_arrival_time_dropdown = document.querySelector("#fields_1850");
 const override_time_reason = document.querySelector(".form-group-1851");
+const admin_signin = document.querySelector('#fields_1907');
+//alert(admin_signin);
 
 //display_expected_departure_time arguments
 const expected_time_on_site = document.querySelector("#fields_1760");
@@ -42,6 +43,7 @@ const departure_location_field = document.querySelector("#fields_1764");
 //hide_visit_site_again() arguments
 const visit_site_dropdown = document.querySelector("#fields_1901");
 const visit_site = document.querySelector(".form-group-1902");
+const visit_site_reason = document.querySelector("#fields_1902");
 
 //update condition rating arguments
 const asset_rating = document.querySelector("#fields_1987");
@@ -158,7 +160,8 @@ if (form_id == 9) {
         arrival_on_site,
         actual_arrival_on_site,
         override_arrival_time_dropdown,
-        override_time_reason
+        override_time_reason,
+        admin_signin
     );
     disable_work_activity(update_work_activity, 2216);
     update_select_chosen(work_activity_options, 2216);
@@ -408,6 +411,7 @@ else if (form_id == 16) {
                 else {
                     asset_rating_form.style.display = "none";
                     asset_dropdown_form.style.display = "none";
+                    show_all_assets_form.style.display = "none";
                     $('.tab-content').append('<p style="font-size:1.5rem; margin:2rem 0; color:#333333;">No asset found</p>');
                     $("button[type='submit']").prop('disabled', true);
                 }
@@ -431,7 +435,7 @@ else if (form_id == 16) {
 else if (form_id == 17) {
     action_url =
         instance_url +
-        `?module=antevasin/unicloud/public_process&action=run&id=163&path=${form_path}&token=${token}&form_id=${form_id}`;
+        `?module=antevasin/unicloud/public_process&action=run&id=164&path=${form_path}&token=${token}&form_id=${form_id}`;
     //console.log("URL: " + action_url);
 
     //change action url of public form
@@ -809,7 +813,9 @@ function disable_arrival_on_site(
     arrival_on_site,
     actual_arrival_on_site,
     override_arrival_time_dropdown,
-    override_time_reason
+    override_time_reason,
+    admin_signin,
+    signin_action_button
 ) {
     const dateTime = today_date_time();
 
@@ -819,6 +825,10 @@ function disable_arrival_on_site(
     //actual arrival on site reporting tab
     actual_arrival_on_site.value = dateTime;
 
+    if (!signin_action_button) {
+        //admin_signin.value = 810;
+        //override_location_dropdown.value = 761;
+    } else admin_signin.value = 811;
     arrival_on_site.readOnly = true;
 
     //hides the calendar button
@@ -1062,12 +1072,18 @@ function hide_visit_site_again(visit_site_dropdown, visit_site) {
     }
 
     visit_site.style.display = "none";
+    visit_site_reason.required = false;
+    //visit_site_reason.classList.remove('required');
+    //visit_site_reason.value = "";
+
 
     visit_site_dropdown.addEventListener("change", function() {
         visit_dropdown_value = visit_site_dropdown.value;
 
         if (visit_dropdown_value == 807) {
             visit_site.style.display = "block";
+            visit_site_reason.required = true;
+            //visit_site_reason.classList.add('required');
 
             const submit_button = document.querySelector('button[type="submit"]');
             submit_button.addEventListener("click", function(e) {
@@ -1105,6 +1121,9 @@ function hide_visit_site_again(visit_site_dropdown, visit_site) {
             });
         } else {
             visit_site.style.display = "none";
+            visit_site_reason.required = false;
+            //visit_site_reason.value = "";
+            // visit_site_reason.classList.remove('required');
         }
     });
 }
@@ -1151,6 +1170,14 @@ function hide_asset_chosen() {
         asset_rating.style.display = "block";
         asset_rating_chosen.style.display = "none";
     });
+    const note = document.createElement("div");
+    note.classList.add('asset-info');
+    note.innerText = `* Please only update the Asset Condition Assessment if it differs from above`;
+    note.style.cssText = `
+          padding-left:2rem;
+          margin-top:5rem;
+          `;
+    asset_rating_form.append(note);
 }
 
 function hide_asset_chosen_qr() {
@@ -1160,6 +1187,10 @@ function hide_asset_chosen_qr() {
         asset_rating_qr.style.display = "block";
         asset_rating_chosen.style.display = "none";
     });
+}
+
+function update_asset_condition_note(asset_rating_form) {
+
 }
 
 function get_asset_name(asset_rating_options, asset_rating_form, asset_id_action_button, mutiple_asset_id = false) {
@@ -1198,7 +1229,12 @@ function get_asset_name(asset_rating_options, asset_rating_form, asset_id_action
 
             //console.log(current_rating);
             const rating = document.createElement("h5");
-            rating.innerText = `Current Asset Condition Assessment : ${current_rating}`;
+            if (current_rating) {
+                rating.innerText = `Current Asset Condition Assessment : ${current_rating}`;
+            } else {
+                rating.innerText = `Current Asset Condition Assessment : `;
+            }
+
             rating.classList.add('asset-info');
             rating.style.cssText = `
                     text-align:left;
@@ -1207,14 +1243,7 @@ function get_asset_name(asset_rating_options, asset_rating_form, asset_id_action
                   `;
             asset.append(rating);
 
-            // const note = document.createElement("div");
-            // note.classList.add('asset-info');
-            // note.innerText = `* Please only update the Asset Condition Assessment if it differs from above`;
-            // note.style.cssText = `
-            //       padding-left:2rem;
-            //       margin-top:5rem;
-            //       `;
-            // asset_rating_form.append(note);
+
         },
         error: function(error) {
             console.log(response);
@@ -1289,11 +1318,10 @@ function get_asset_values_qrcode(
                 error: function(error) {},
             });
         } else {
-            // if (visit_dropdown_value != 807) {
-            //     console.log("asset submit via public form");
-            //     form.submit();
-            // }
-            alert();
+            if (visit_dropdown_value != 807) {
+                console.log("asset submit via public form");
+                form.submit();
+            }
         }
     });
 
