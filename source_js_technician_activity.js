@@ -103,10 +103,12 @@ const map_location = url.get("location");
 let asset_id = url.get("asset");
 let user_id = url.get("user_id");
 let updated_asset_id = url.get("updated_asset");
-const full_path = form_path.split("/");
-const site_id = full_path[2];
-const contractor = full_path[3];
-const contractor_id = contractor.split('-')[1];
+if (form_path) {
+    const full_path = form_path.split("/");
+    const site_id = full_path[2];
+    const contractor = full_path[3];
+    const contractor_id = contractor.split('-')[1];
+}
 //const technician_entity_path = full_path[4];
 //const technician_entity = technician_entity_path.split('-')[0];
 let action_url;
@@ -1068,7 +1070,8 @@ function hide_visit_site_again(visit_site_dropdown, visit_site) {
     //automate action sign out
     if (!technician_id) {
         action_url = document.querySelector("#process").action;
-        //alert(action_url);
+        technician_id = get_technician_id();
+        if (technician_id === 0) return; // in UI so exit public form code
     }
 
     visit_site.style.display = "none";
@@ -1101,13 +1104,13 @@ function hide_visit_site_again(visit_site_dropdown, visit_site) {
                     success: function(response) {
                         let response_obj = JSON.parse(response);
                         if (response_obj.hasOwnProperty("success")) {
-                            // console.log( 'success' );
+                            console.log('success');
                             if (public_form) {
                                 console.log("public form submit");
-                                $("#public_form").submit();
+                                //$("#public_form").submit();
                             } else {
                                 console.log("process submit");
-                                $("#process").submit();
+                                //$("#process").submit();
                             }
                             //console.log('visit submit');
                         } else if (response_obj.hasOwnProperty("error")) {
@@ -1698,6 +1701,7 @@ function sign_in_acknowledgement(button_message, field_id, work_activity, site_r
                     // let answers = get_tech_activity_answers();
                     if (!technician_id) {
                         technician_id = get_technician_id();
+                        if (technician_id === 0) return; // in UI so exit public form code
                     }
                     let url = instance_url +
                         `?module=antevasin/facilities/public_process&action=post_tech_activity_answers&parent_item_id=${technician_id}&token=${token}`;
@@ -1760,19 +1764,42 @@ function disable_work_activity(update_work_activity, field_id) {
 }
 
 function update_select_chosen(work_activity_options, field_id) {
+    console.log(work_activity_options);
+    let url, contractor_id;
+
+    url = instance_url +
+        `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=2216`;
+
     if (!technician_id) {
         technician_id = get_technician_id();
-    }
+        //alert(technician_id);
+        if (technician_id === 0) {
+            contractor_id = get_contractor_id();
 
-    let url = instance_url +
-        `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=2216`;
+            url = instance_url +
+                `?module=antevasin/unicloud/public_process&action=get_field_values&item=76-${contractor_id}&token=${token}&field_ids=2255`;
+            console.log(url);
+        } else {
+            url = instance_url +
+                `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=2216`;
+        }
+        // in UI so exit public form code
+    }
+    alert(url);
 
     $.ajax({
         url: url,
         type: "GET",
         success: function(response) {
+            console.log(response);
             let data = JSON.parse(response);
-            let work_activity_list = data[2216];
+            let work_activity_list;
+            if (contractor_id) {
+                work_activity_list = data[2255];
+            } else {
+                work_activity_list = data[2216];
+            }
+
             let work_activity_ids = work_activity_list.split(',');
             //alert(work_activity_ids);
 
@@ -1878,7 +1905,12 @@ function chosen_container_width() {
 function site_safety_documents() {
     const modal_footer = document.querySelector('.modal-footer');
     const button = document.querySelector('button[type="submit"]');
-    let path = form_path.split('/');
+
+    if (form_path) {
+        let path = form_path.split('/');
+    } else {
+        let path = get_path();
+    }
     let documents_path = `${path[0]}/${path[1]}/${path[2]}/85`;
     let site_safety_documents_path = `${instance_url}?module=items/items&path=${documents_path}`;
     const link = document.createElement('a');
@@ -1951,6 +1983,7 @@ function get_asset_id() {
             else {
                 asset_rating_form.style.display = "none";
                 asset_dropdown_form.style.display = "none";
+                signout_action_button();
             }
         },
         error: function(error) {
@@ -1959,15 +1992,42 @@ function get_asset_id() {
     });
 }
 
+function signout_action_button() {
+    const button = document.querySelector("button[type='submit']");
+    const form = document.querySelector("#process");
+    button.addEventListener('click', function(e) {
+        form.submit();
+    })
+}
+
 function get_technician_id() {
+    let path = get_path();
+    console.log(path);
+    if (path[4]) {
+        let technician_path = path[4].split("-");
+        technician_id = technician_path[1];
+        return technician_id;
+    } else {
+        // if in UI then return 0 
+        return 0;
+    }
+
+}
+
+function get_contractor_id() {
+    let path = get_path();
+    let contractor_path = path[3].split("-");
+    let contractor_id = contractor_path[1];
+    return contractor_id;
+}
+
+function get_path() {
     const form = document.querySelector('form#process');
     let action = form.action;
     let action_array = action.split("&");
     let path = action_array[3].split("/");
     //console.log(path);
-    let technician_path = path[4].split("-");
-    technician_id = technician_path[1];
-    return technician_id;
+    return path;
 }
 
 function get_tech_questions(action_button) {
