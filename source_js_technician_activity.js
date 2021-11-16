@@ -4,6 +4,7 @@ let instance_url = get_instance_url();
 const arrival_location = document.querySelector("#fields_1759");
 const arrival_form = document.querySelector(".form-group-1759");
 const override_location = document.querySelector(".form-group-1766");
+const override_location_dropdown = document.querySelector("#fields_1765");
 const button_message = document.getElementById("form-error-container");
 
 
@@ -92,6 +93,7 @@ const show_all_assets = document.querySelector("#fields_2311");
 const show_all_assets_form = document.querySelector(".form-group-2311");
 
 //public form url values
+let site_id, contractor_id;
 let path = window.location.href;
 const url = new URLSearchParams(path);
 const parent_id = url.get("parent_item_id");
@@ -105,9 +107,9 @@ let user_id = url.get("user_id");
 let updated_asset_id = url.get("updated_asset");
 if (form_path) {
     const full_path = form_path.split("/");
-    const site_id = full_path[2];
+    site_id = full_path[2];
     const contractor = full_path[3];
-    const contractor_id = contractor.split('-')[1];
+    contractor_id = contractor.split('-')[1];
 }
 //const technician_entity_path = full_path[4];
 //const technician_entity = technician_entity_path.split('-')[0];
@@ -1011,12 +1013,14 @@ function disable_site_departure(
     //hides or shows the arrival on site textarea
     override_site_departure_reason_form.style.display = "none";
     override_site_departure_reason.required = false;
+    $('.form-group-1906').hide();
 
     override_site_departure.addEventListener("change", function() {
         var value = override_site_departure.value;
 
         if (value == 808) {
             override_site_departure_reason_form.style.display = "none";
+            $('.form-group-1906').hide();
             dateset[0].style.display = "none";
             departure_on_site.readOnly = true;
             dateset[0].disabled = true;
@@ -1024,6 +1028,7 @@ function disable_site_departure(
             override_site_departure_reason.required = false;
         } else {
             override_site_departure_reason_form.style.display = "block";
+            $('.form-group-1906').show();
             dateset[0].style.display = "block";
             departure_on_site.readOnly = false;
             dateset[0].disabled = false;
@@ -1067,29 +1072,35 @@ function departure_location(departure_location_form, departure_location_field) {
 }
 
 function hide_visit_site_again(visit_site_dropdown, visit_site) {
+    console.log('in hide_visit_site_again ');
     //automate action sign out
     if (!technician_id) {
         action_url = document.querySelector("#process").action;
         technician_id = get_technician_id();
-        if (technician_id === 0) return; // in UI so exit public form code
+        //alert(technician_id);
+        //if (technician_id === 0) return; // in UI so exit public form code
     }
 
     visit_site.style.display = "none";
     visit_site_reason.required = false;
+    $('.form-group-1902').hide();
     //visit_site_reason.classList.remove('required');
     //visit_site_reason.value = "";
 
 
     visit_site_dropdown.addEventListener("change", function() {
         visit_dropdown_value = visit_site_dropdown.value;
+        console.log('visit site dropdown changed');
 
         if (visit_dropdown_value == 807) {
             visit_site.style.display = "block";
             visit_site_reason.required = true;
+            $('.form-group-1902').show();
             //visit_site_reason.classList.add('required');
 
             const submit_button = document.querySelector('button[type="submit"]');
             submit_button.addEventListener("click", function(e) {
+                console.log('submit button clicked');
                 e.preventDefault();
                 let clear_fields =
                     "1759,1760,1762,1763,1764,1765,1766,1769,1771,1772,1773,1838,1850,1901,1903,1906,1907";
@@ -1098,37 +1109,63 @@ function hide_visit_site_again(visit_site_dropdown, visit_site) {
                 let copy_record_url =
                     instance_url +
                     `?module=antevasin/unicloud/public_process&action=copy&token=${token}&item=77-${technician_id}&clear_fields=${clear_fields}&set_fields=${set_fields}`;
-                $.ajax({
-                    url: copy_record_url,
-                    type: "GET",
-                    success: function(response) {
-                        let response_obj = JSON.parse(response);
-                        if (response_obj.hasOwnProperty("success")) {
-                            console.log('success');
-                            if (public_form) {
-                                console.log("public form submit");
-                                //$("#public_form").submit();
-                            } else {
-                                console.log("process submit");
-                                //$("#process").submit();
+                console.log(copy_record_url);
+                let asset_condition_check = check_asset_condition_selected();
+                if (asset_condition_check) {
+                    $.ajax({
+                        url: copy_record_url,
+                        type: "GET",
+                        success: function(response) {
+                            let response_obj = JSON.parse(response);
+                            if (response_obj.hasOwnProperty("success")) {
+                                console.log('success');
+                                if (public_form) {
+                                    console.log("public form submit");
+                                    submit_button.style.display = "none";
+                                    $('.primary-modal-action-loading').css('visibility', 'visible');
+                                    $("#public_form").submit();
+                                } else {
+                                    console.log("process submit");
+                                    submit_button.style.display = "none";
+                                    $('.primary-modal-action-loading').css('visibility', 'visible');
+                                    $("#process").submit();
+                                }
+                                //console.log('visit submit');
+                            } else if (response_obj.hasOwnProperty("error")) {
+                                console.log(response_obj.error);
                             }
-                            //console.log('visit submit');
-                        } else if (response_obj.hasOwnProperty("error")) {
-                            console.log(response_obj.error);
-                        }
-                    },
-                    error: function(error) {
-                        console.log(error);
-                    },
-                });
+                        },
+                        error: function(error) {
+                            console.log(error);
+                        },
+                    });
+                } else {
+                    button_message = "Asset Notes and Image required!";
+                }
             });
         } else {
             visit_site.style.display = "none";
             visit_site_reason.required = false;
+            $('.form-group-1902').hide();
             //visit_site_reason.value = "";
             // visit_site_reason.classList.remove('required');
         }
     });
+}
+
+function check_asset_condition_selected() {
+    let asset_condition = asset_rating.value;
+    if (asset_condition != "") {
+        let notes = asset_notes.value;
+        let image = asset_image.value;
+
+        if (notes && image) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return true;
 }
 
 function display_loader() {
@@ -1202,6 +1239,7 @@ function get_asset_name(asset_rating_options, asset_rating_form, asset_id_action
     } else if (mutiple_asset_id) {
         asset_id = mutiple_asset_id;
     }
+    //alert(asset_id);
     let current_rating;
     let asset_url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_field_values&item=52-${asset_id}&token=${token}&field_ids=762,896,973`;
     //console.log('asset '+asset_url);
@@ -1224,8 +1262,10 @@ function get_asset_name(asset_rating_options, asset_rating_form, asset_id_action
                     text-transform:uppercase;
                     font-weight: 600;
                   `;
+            console.dir(asset);
             asset_rating_form.prepend(asset);
 
+            $('.form-group-1987').prepend(asset);
             asset_rating_options.forEach(function(asset) {
                 if (asset.value == current_rating_value) current_rating = asset.text;
             });
@@ -1323,6 +1363,8 @@ function get_asset_values_qrcode(
         } else {
             if (visit_dropdown_value != 807) {
                 console.log("asset submit via public form");
+                button.style.display = "none";
+                $('.primary-modal-action-loading').css('visibility', 'visible');
                 form.submit();
             }
         }
@@ -1355,7 +1397,7 @@ function get_asset_values(
         //console.log(path);
         let technician_path = path[4].split("-");
         technician_id = technician_path[1];
-        //console.log(technician_id);
+        //alert(technician_id);
         public_form = false;
         form = document.querySelector("form#process");
     } else if (multiple_asset_id) {
@@ -1416,9 +1458,10 @@ function get_asset_values(
                                     false
                                 );
                                 button.style.display = "none";
+                                button_message.innerText = "";
                                 // document.querySelector('.primary-modal-action-loading').style.visibility="visible";
                                 $('.primary-modal-action-loading').css('visibility', 'visible');
-                                button_message.innerText = "";
+
                             } else {
                                 button_message.innerText = "Asset Notes and Image required!";
                             }
@@ -1428,6 +1471,9 @@ function get_asset_values(
                 } else {
                     if (visit_dropdown_value != 807) {
                         console.log("asset submit via public form");
+                        button_message.innerText = "";
+                        button.style.display = "none";
+                        $('.primary-modal-action-loading').css('visibility', 'visible');
                         form.submit();
                     }
                 }
@@ -1666,6 +1712,8 @@ function accept_job_date(field_id, job_accept_date, work_activity, site_review, 
         if (work_activity.checked && site_review.checked) {
             job_accept_date.value = today_date_time();
             $(`#fields_${field_id}`).prop('disabled', false).trigger("chosen:updated");
+            button.style.display = "none";
+            $('.primary-modal-action-loading').css('visibility', 'visible');
             form.submit();
         }
     })
@@ -1711,6 +1759,9 @@ function sign_in_acknowledgement(button_message, field_id, work_activity, site_r
                         data: { answers: get_tech_activity_answers() },
                         success: function(response) {
                             console.log(response);
+                            form.reportValidity();
+                            button.style.display = "none";
+                            $('.primary-modal-action-loading').css('visibility', 'visible');
                             form.submit();
                         },
                         error: function(error) {
@@ -1739,6 +1790,8 @@ function decline_job_date(job_decline_date, job_decline_reason, required_message
         job_decline_date.value = today_date_time();
         if (job_decline_reason.value !== '') form.submit();
         else required_message.style.display = "inline";
+        button.style.display = "none";
+        $('.primary-modal-action-loading').css('visibility', 'visible');
         form.submit();
     })
 }
@@ -1764,9 +1817,7 @@ function disable_work_activity(update_work_activity, field_id) {
 }
 
 function update_select_chosen(work_activity_options, field_id) {
-    console.log(work_activity_options);
     let url, contractor_id;
-
     url = instance_url +
         `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=2216`;
 
@@ -1785,23 +1836,25 @@ function update_select_chosen(work_activity_options, field_id) {
         }
         // in UI so exit public form code
     }
-    alert(url);
+    //alert(url);
 
     $.ajax({
         url: url,
         type: "GET",
         success: function(response) {
-            console.log(response);
             let data = JSON.parse(response);
+            //console.log(data);
             let work_activity_list;
-            if (contractor_id) {
+            if (data[2255]) {
                 work_activity_list = data[2255];
-            } else {
+            } else if (data[2216]) {
                 work_activity_list = data[2216];
+            } else {
+                work_activity_list = '';
             }
-
+            //console.log(work_activity_list);
             let work_activity_ids = work_activity_list.split(',');
-            //alert(work_activity_ids);
+            //console.log(work_activity_ids);
 
             work_activity_ids.forEach(function(id) {
                 work_activity_options.forEach(function(option) {
@@ -1811,6 +1864,7 @@ function update_select_chosen(work_activity_options, field_id) {
                     }
                 });
             });
+
 
             $(`#fields_${field_id}`).trigger('chosen:updated');
             get_default_tags(field_id);
@@ -1848,10 +1902,12 @@ function work_activity_tags(ids, field_id) {
     let chosen_ids = ids.toString();
     //console.log(chosen_ids);
     let url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_work_activity_tags&chosen_ids=${chosen_ids}&token=${token}`;
+    console.log(url);
     $.ajax({
         url: url,
         type: "GET",
         success: function(response) {
+            //console.log(response);
             let tags = JSON.parse(response);
             //console.log(tags);
 
@@ -1950,7 +2006,7 @@ function get_asset_id() {
         type: "GET",
         success: function(response) {
             let asset_id = response;
-            //alert(asset_id);
+            //alert("Asset "+asset_id);
             if (asset_id) {
                 let asset_ids = asset_id.split(',');
                 if (asset_ids.length == 1) {
@@ -1996,13 +2052,15 @@ function signout_action_button() {
     const button = document.querySelector("button[type='submit']");
     const form = document.querySelector("#process");
     button.addEventListener('click', function(e) {
+        button.style.display = "none";
+        $('.primary-modal-action-loading').css('visibility', 'visible');
         form.submit();
     })
 }
 
 function get_technician_id() {
     let path = get_path();
-    console.log(path);
+    // console.log(path);
     if (path[4]) {
         let technician_path = path[4].split("-");
         technician_id = technician_path[1];
@@ -2016,9 +2074,13 @@ function get_technician_id() {
 
 function get_contractor_id() {
     let path = get_path();
-    let contractor_path = path[3].split("-");
-    let contractor_id = contractor_path[1];
-    return contractor_id;
+    if (path[3]) {
+        let contractor_path = path[3].split("-");
+        let contractor_id = contractor_path[1];
+        return contractor_id;
+    } else {
+        return 0;
+    }
 }
 
 function get_path() {
@@ -2076,6 +2138,8 @@ function check_contractor_onsite_due_date() {
             let service_type = $(`#fields_1740`).chosen().val();
             if (service_type && onsite_due.value && completion_due.value && contractor.value && description.value) {
                 //alert('submit');
+                button.style.display = "none";
+                $('.primary-modal-action-loading').css('visibility', 'visible');
                 form.submit();
             } else {
                 message.innerText = '*Fill all the required fields!';
