@@ -2165,13 +2165,18 @@ function show_service_request_number() {
         success: function(response) {
             //console.log(response);
             if (response) {
-                const form = document.querySelectorAll(".form-group-parent-item-id");
+                let form = document.querySelectorAll(".form-group-parent-item-id");
+                console.dir(form);
+                if (form.length == 0) {
+                    console.log("in ui");
+                    form = document.querySelectorAll(".modal-title");
+                }
                 const request_number = document.createElement('h5');
                 request_number.innerHTML = "Service Request Number : " + response;
                 request_number.style.cssText = `
-                    margin-left:20px;
-                    text-transform:capitalize;
-                `;
+                        margin-left:20px;
+                        text-transform:capitalize;
+                    `;
                 form[0].append(request_number);
             }
         },
