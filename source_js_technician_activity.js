@@ -2150,6 +2150,37 @@ function check_contractor_onsite_due_date() {
 
 }
 
+function show_service_request_number() {
+    if (!contractor_id) {
+        contractor_id = get_contractor_id();
+    }
+    // console.log("Contractor_id: "+contractor_id);
+    let url =
+        instance_url +
+        `?module=antevasin/unicloud/public_process&action=get_service_request_number&contractor_id=${contractor_id}&token=${token}`;
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        success: function(response) {
+            //console.log(response);
+            if (response) {
+                const form = document.querySelectorAll(".form-group-parent-item-id");
+                const request_number = document.createElement('h5');
+                request_number.innerHTML = "Service Request Number : " + response;
+                request_number.style.cssText = `
+                    margin-left:20px;
+                    text-transform:capitalize;
+                `;
+                form[0].append(request_number);
+            }
+        },
+        error: function(error) {
+            console.log(error);
+        },
+    });
+}
+
 function get_instance_url() {
     return (
         window.location.protocol +
