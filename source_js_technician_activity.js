@@ -122,6 +122,8 @@ site_safety_documents();
 //refresh page on close button 
 refresh_on_automate_action_close();
 
+show_service_request_number();
+
 //sign in form
 if (form_id == 9) {
     //check status and redirect if applicable
@@ -1140,7 +1142,7 @@ function hide_visit_site_again(visit_site_dropdown, visit_site) {
                         },
                     });
                 } else {
-                    button_message = "Asset Notes and Image required!";
+                    button_message = "Asset Notes field is required!";
                 }
             });
         } else {
@@ -1159,7 +1161,7 @@ function check_asset_condition_selected() {
         let notes = asset_notes.value;
         let image = asset_image.value;
 
-        if (notes && image) {
+        if (notes) {
             return true;
         } else {
             return false;
@@ -1204,6 +1206,7 @@ function display_loader() {
 }
 
 function hide_asset_chosen() {
+    //alert();
     asset_rating.style.display = "block";
     window.addEventListener("load", function() {
         const asset_rating_chosen = document.querySelector("#fields_1987_chosen");
@@ -1335,7 +1338,7 @@ function get_asset_values_qrcode(
                     const notes = asset_notes_qr.value;
                     const image = asset_image_qr.value;
 
-                    if (notes && image) {
+                    if (notes) {
                         console.log("notes   " + notes + "Image " + image);
                         update_asset_insert_history(
                             rating,
@@ -1355,7 +1358,7 @@ function get_asset_values_qrcode(
                         $('.primary-modal-action-loading').css('visibility', 'visible');
                         button_message.innerText = "";
                     } else {
-                        button_message.innerText = "Asset Notes and Image required!";
+                        button_message.innerText = "Asset Notes field is required!";
                     }
                 },
                 error: function(error) {},
@@ -1442,7 +1445,7 @@ function get_asset_values(
                             const notes = asset_notes.value;
                             const image = asset_image.value;
 
-                            if (notes && image) {
+                            if (notes) {
                                 //console.log("notes   " +notes+"Image " +image);
                                 update_asset_insert_history(
                                     rating,
@@ -1463,7 +1466,7 @@ function get_asset_values(
                                 $('.primary-modal-action-loading').css('visibility', 'visible');
 
                             } else {
-                                button_message.innerText = "Asset Notes and Image required!";
+                                button_message.innerText = "Asset Notes field is required!";
                             }
                         },
                         error: function(error) {},
@@ -1597,7 +1600,9 @@ function get_asset_from_dropdown(assets_dropdown, asset_rating_options, update_a
         if (asset_id !== 'Select Asset') {
             asset_id = parseInt(asset_id);
             if (document.querySelector('.asset-info')) {
+                //alert();
                 document.querySelector('.asset-info').style.display = "none";
+                $('.asset-info').hide();
             }
             if (signout_update_action_button) {
                 get_asset_values(
@@ -1739,6 +1744,7 @@ function sign_in_acknowledgement(button_message, field_id, work_activity, site_r
     if (action_button) { form = document.querySelector("#process"); } else form = document.querySelector("#public_form");
     button.addEventListener('click', function(e) {
         e.preventDefault();
+        form.reportValidity();
         $.getScript('https://source.unicloud.co.nz/js/tech_questions.js', function() {
             let disable_sign_in_button = enable_tech_activity_sign_in();
             //console.log("disable sign in button: " + disable_sign_in_button);
@@ -1759,10 +1765,15 @@ function sign_in_acknowledgement(button_message, field_id, work_activity, site_r
                         data: { answers: get_tech_activity_answers() },
                         success: function(response) {
                             console.log(response);
-                            form.reportValidity();
-                            button.style.display = "none";
-                            $('.primary-modal-action-loading').css('visibility', 'visible');
-                            form.submit();
+                            let sign_in_check = ckeck_sign_in_required_fields();
+                            if (sign_in_check) {
+                                button_message.innerText = '';
+                                button.style.display = "none";
+                                $('.primary-modal-action-loading').css('visibility', 'visible');
+                                form.submit();
+                            } else {
+                                button_message.innerText = 'Expected Time On Site is required!';
+                            }
                         },
                         error: function(error) {
                             console.log(error);
@@ -1778,6 +1789,13 @@ function sign_in_acknowledgement(button_message, field_id, work_activity, site_r
             }
         });
     })
+}
+
+function ckeck_sign_in_required_fields() {
+    let expected_time = expected_time_on_site.value;
+    //alert(expected_time);
+    if (expected_time == "") return false;
+    return true;
 }
 
 function decline_job_date(job_decline_date, job_decline_reason, required_message, action_button) {
@@ -1961,18 +1979,21 @@ function chosen_container_width() {
 function site_safety_documents() {
     const modal_footer = document.querySelector('.modal-footer');
     const button = document.querySelector('button[type="submit"]');
-
+    let path;
     if (form_path) {
-        let path = form_path.split('/');
+        path = form_path.split('/');
     } else {
-        let path = get_path();
+        path = get_path();
+        //console.log(path);
     }
     let documents_path = `${path[0]}/${path[1]}/${path[2]}/85`;
+    // alert(documents_path);
     let site_safety_documents_path = `${instance_url}?module=items/items&path=${documents_path}`;
     const link = document.createElement('a');
     link.innerText = 'Site Safety Documents';
     link.setAttribute('href', site_safety_documents_path);
     link.setAttribute('class', 'btn');
+    link.setAttribute('target', '_blank');
     link.style.cssText = `
         background-color:#197278;
         color:white;
@@ -2048,6 +2069,88 @@ function get_asset_id() {
     });
 }
 
+function update_asset_action_button() {
+    //alert();
+    const asset_rating_chosen = document.querySelector("#fields_1987_chosen");
+    asset_rating.style.display = "block";
+    asset_rating_chosen.style.display = "none";
+    let contractor_id = get_contractor_id();
+    let token = document.getElementById("form_session_token").value;
+    let check_status_url = instance_url +
+        `?module=antevasin/unicloud/public_process&action=get_field_values&item=76-${contractor_id}&token=${token}&field_ids=1713`;
+    $.ajax({
+        url: check_status_url,
+        type: "GET",
+        success: function(response) {
+            let data = JSON.parse(response);
+            //console.log(data);
+            if (data[1713] == 432 || data[1713] == 434) {
+                let url = `index.php?module=antevasin/unicloud/unicloud&action=get_asset_id&contractor_id=${contractor_id}&token=${token}`;
+                $.ajax({
+                    url: url,
+                    type: "GET",
+                    success: function(response) {
+                        let asset_id = response;
+                        //alert("Asset "+asset_id);
+                        if (asset_id) {
+                            let asset_ids = asset_id.split(',');
+                            if (asset_ids.length == 1) {
+                                get_asset_values(
+                                    asset_rating,
+                                    asset_rating_form,
+                                    asset_rating_options,
+                                    asset_notes,
+                                    asset_image,
+                                    'public_form_16',
+                                );
+                                hide_asset_notes_image(
+                                    asset_rating,
+                                    asset_notes_form,
+                                    asset_image_form,
+                                    asset_notes,
+                                    asset_image
+                                );
+                                asset_dropdown_form.style.display = "none";
+                                show_all_assets_form.style.display = "none";
+                            }
+                            //multiple assets
+                            else {
+                                asset_dropdown_form.style.display = "block";
+                                show_related_assets_dropdown(asset_ids, assets_dropdown);
+                                get_asset_from_dropdown(assets_dropdown, asset_rating_options, 'public_form_16');
+                                show_all_assets_filter(asset_ids, assets_dropdown);
+                            }
+                        }
+                        //no asset
+                        else {
+                            asset_rating_form.style.display = "none";
+                            asset_dropdown_form.style.display = "none";
+                            show_all_assets_form.style.display = "none";
+                            $('.tab-content').append('<p style="font-size:1.5rem; margin:2rem 0; color:#333333;">No asset found</p>');
+                            $("button[type='submit']").prop('disabled', true);
+                        }
+                    },
+                    error: function(error) {
+                        console.log(response);
+                    },
+                });
+
+
+            } else {
+                //contractor job declined or completed
+                asset_rating_form.style.display = "none";
+                asset_dropdown_form.style.display = "none";
+                $('.tab-content').append('<p style="font-size:1.5rem; margin:2rem 0; color:#333333;">Contractor Job has been closed.</p>');
+                $("button[type='submit']").prop('disabled', true);
+            }
+        },
+        error: function(error) {
+            console.log(error);
+        },
+    });
+
+}
+
 function signout_action_button() {
     const button = document.querySelector("button[type='submit']");
     const form = document.querySelector("#process");
@@ -2087,9 +2190,25 @@ function get_path() {
     const form = document.querySelector('form#process');
     let action = form.action;
     let action_array = action.split("&");
-    let path = action_array[3].split("/");
-    //console.log(path);
-    return path;
+    let full_path = action_array[3];
+    //alert(full_path);
+
+    if (full_path.includes('path')) {
+        let path_array = full_path.split('=');
+        let path = path_array[1].split('/');
+        //alert(path);
+        return path;
+    } else {
+        const form = document.querySelector('#form_action_url');
+        let value = form.value;
+        let action_array = value.split("&");
+        let full_path = action_array[3];
+        let path_array = full_path.split('=');
+        let path = path_array[1].split('/');
+        //alert(path);
+        return path;
+    }
+
 }
 
 function get_tech_questions(action_button) {
@@ -2199,7 +2318,12 @@ function today_date_time() {
     const today = new Date();
     const date =
         today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate();
-    const time = today.getHours() + ":" + today.getMinutes();
+    let minutes = today.getMinutes();
+    //alert(minutes);
+    if (minutes == 1 || minutes == 2 || minutes == 3 || minutes == 3 || minutes == 4 || minutes == 5 || minutes == 6 || minutes == 7 || minutes == 8 || minutes == 9 || minutes == 0) {
+        minutes = `0${minutes}`;
+    }
+    const time = today.getHours() + ":" + minutes;
     const dateTime = date + " " + time;
     return dateTime;
 }
