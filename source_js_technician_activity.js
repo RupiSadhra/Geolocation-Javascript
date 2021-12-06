@@ -1446,7 +1446,7 @@ function get_asset_values(
                             const image = asset_image.value;
 
                             if (notes) {
-                                console.log("notes   " +notes+"Image " +image);
+                                console.log("notes   " + notes + "Image " + image);
                                 update_asset_insert_history(
                                     rating,
                                     rating_value,
@@ -1618,8 +1618,7 @@ function get_asset_from_dropdown(assets_dropdown, asset_rating_options, update_a
                     asset_id,
                     false
                 );
-            } 
-            else if (update_asset_action_button) {
+            } else if (update_asset_action_button) {
                 get_asset_values(
                     asset_rating,
                     asset_rating_form,
@@ -1630,8 +1629,7 @@ function get_asset_from_dropdown(assets_dropdown, asset_rating_options, update_a
                     asset_id,
                     true
                 );
-            }
-            else {
+            } else {
                 get_asset_values(
                     asset_rating,
                     asset_rating_form,
@@ -2146,8 +2144,9 @@ function update_asset_action_button() {
                             show_all_assets_form.style.display = "none";
                             $('.form-group-2311').hide();
                             $('.form-group-1987').hide();
-                             $('.form-group-2038').hide();
+                            $('.form-group-2038').hide();
                             $('.tab-content').append('<p style="font-size:1.5rem; margin:2rem 0; color:#333333;">No asset found</p>');
+                            $('.form-section').append('<p style="font-size:1.5rem; margin:2rem 0; color:#333333;">No asset found</p>');
                             $("button[type='submit']").prop('disabled', true);
                         }
                     },
@@ -2159,9 +2158,13 @@ function update_asset_action_button() {
 
             } else {
                 //contractor job declined or completed
+                $('.form-group-2311').hide();
+                $('.form-group-1987').hide();
+                $('.form-group-2038').hide();
                 asset_rating_form.style.display = "none";
                 asset_dropdown_form.style.display = "none";
                 $('.tab-content').append('<p style="font-size:1.5rem; margin:2rem 0; color:#333333;">Contractor Job has been closed.</p>');
+                $('.form-section').append('<p style="font-size:1.5rem; margin:2rem 0; color:#333333;">Contractor Job has been closed.</p>');
                 $("button[type='submit']").prop('disabled', true);
             }
         },
