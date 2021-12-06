@@ -1446,7 +1446,7 @@ function get_asset_values(
                             const image = asset_image.value;
 
                             if (notes) {
-                                //console.log("notes   " +notes+"Image " +image);
+                                console.log("notes   " +notes+"Image " +image);
                                 update_asset_insert_history(
                                     rating,
                                     rating_value,
@@ -1577,16 +1577,19 @@ function hide_asset_notes_image(
     asset_image.required = false;
     asset_notes_form.style.display = "none";
     asset_image_form.style.display = "none";
+    $('.form-group-2038').hide();
     asset_rating.addEventListener("change", function() {
         var value = asset_rating.value;
         if (value == "") {
             asset_notes_form.style.display = "none";
             asset_image_form.style.display = "none";
+            $('.form-group-2038').hide();
             asset_notes.required = false;
             asset_image.required = false;
         } else {
             asset_notes_form.style.display = "block";
             asset_image_form.style.display = "block";
+            $('.form-group-2038').show();
             asset_notes.required = true;
             asset_image.required = true;
         }
@@ -1594,7 +1597,7 @@ function hide_asset_notes_image(
 }
 
 
-function get_asset_from_dropdown(assets_dropdown, asset_rating_options, update_asset_public_form, signout_update_action_button) {
+function get_asset_from_dropdown(assets_dropdown, asset_rating_options, update_asset_public_form, signout_update_action_button, update_asset_action_button) {
     assets_dropdown.addEventListener("change", function() {
         let asset_id = assets_dropdown.value;
         if (asset_id !== 'Select Asset') {
@@ -1615,7 +1618,20 @@ function get_asset_from_dropdown(assets_dropdown, asset_rating_options, update_a
                     asset_id,
                     false
                 );
-            } else {
+            } 
+            else if (update_asset_action_button) {
+                get_asset_values(
+                    asset_rating,
+                    asset_rating_form,
+                    asset_rating_options,
+                    asset_notes,
+                    asset_image,
+                    update_asset_public_form,
+                    asset_id,
+                    true
+                );
+            }
+            else {
                 get_asset_values(
                     asset_rating,
                     asset_rating_form,
@@ -2102,6 +2118,7 @@ function update_asset_action_button() {
                                     asset_notes,
                                     asset_image,
                                     'public_form_16',
+                                    asset_id
                                 );
                                 hide_asset_notes_image(
                                     asset_rating,
@@ -2112,12 +2129,13 @@ function update_asset_action_button() {
                                 );
                                 asset_dropdown_form.style.display = "none";
                                 show_all_assets_form.style.display = "none";
+                                $('.form-group-2311').hide();
                             }
                             //multiple assets
                             else {
                                 asset_dropdown_form.style.display = "block";
                                 show_related_assets_dropdown(asset_ids, assets_dropdown);
-                                get_asset_from_dropdown(assets_dropdown, asset_rating_options, 'public_form_16');
+                                get_asset_from_dropdown(assets_dropdown, asset_rating_options, 'public_form_16', true);
                                 show_all_assets_filter(asset_ids, assets_dropdown);
                             }
                         }
@@ -2126,6 +2144,9 @@ function update_asset_action_button() {
                             asset_rating_form.style.display = "none";
                             asset_dropdown_form.style.display = "none";
                             show_all_assets_form.style.display = "none";
+                            $('.form-group-2311').hide();
+                            $('.form-group-1987').hide();
+                             $('.form-group-2038').hide();
                             $('.tab-content').append('<p style="font-size:1.5rem; margin:2rem 0; color:#333333;">No asset found</p>');
                             $("button[type='submit']").prop('disabled', true);
                         }
