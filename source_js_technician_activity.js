@@ -336,6 +336,7 @@ else if (form_id == 14) {
     disable_work_activity(update_work_activity, 2216);
     update_select_chosen(work_activity_options, 2216);
     update_work_activity_tags(2216);
+    show_planned_arrival_time();
     display_loader();
     chosen_container_width();
 }
@@ -1828,8 +1829,10 @@ function decline_job_date(job_decline_date, job_decline_reason, required_message
     })
 }
 
-function disable_work_activity(update_work_activity, field_id) {
-    $(`#fields_${field_id}`).prop('disabled', true).trigger("chosen:updated");
+function disable_work_activity(update_work_activity, field_id, enable_work_activity) {
+    if (!enable_work_activity) {
+        $(`#fields_${field_id}`).prop('disabled', true).trigger("chosen:updated");
+    }
     if (update_work_activity) {
         update_work_activity.addEventListener('change', function() {
             if (update_work_activity.checked) {
@@ -1927,14 +1930,17 @@ function update_work_activity_tags(field_id) {
 
 
 function work_activity_tags(ids, field_id) {
-    const chosen_container = document.querySelector(`.form-group-${field_id} .col-md-9`);
+    let chosen_container = document.querySelector(`.form-group-${field_id} .col-md-9`);
+    if (!chosen_container) {
+        chosen_container = document.querySelector(`#fields_${field_id}_rendered_value`);
+    }
     if (document.querySelector('.work-activity-tags') || ids == null) {
         document.querySelector('.work-activity-tags').remove();
     }
     let chosen_ids = ids.toString();
     //console.log(chosen_ids);
     let url = `${instance_url}?module=antevasin/unicloud/public_process&action=get_work_activity_tags&chosen_ids=${chosen_ids}&token=${token}`;
-    console.log(url);
+    //console.log(url);
     $.ajax({
         url: url,
         type: "GET",
@@ -1974,9 +1980,11 @@ function refresh_on_automate_action_close() {
     const close_button = document.querySelector('.btn-close');
     const close_icon = document.querySelector('.close');
     if (form) {
-        close_button.addEventListener('click', function() {
-            location.reload();
-        });
+        if (close_button) {
+            close_button.addEventListener('click', function() {
+                location.reload();
+            });
+        }
         close_icon.addEventListener('click', function() {
             location.reload();
         });
@@ -2293,6 +2301,30 @@ function check_contractor_onsite_due_date() {
 
 }
 
+function show_planned_arrival_time() {
+    const arrival_time = document.querySelector("#fields_1771");
+    if (arrival_time) {
+        let url =
+            instance_url +
+            `?module=antevasin/unicloud/public_process&action=get_field_values&item=77-${technician_id}&token=${token}&field_ids=1771`;
+
+        $.ajax({
+            url: url,
+            type: "GET",
+            success: function(response) {
+                let data = JSON.parse(response);
+                console.log(data);
+                let date = today_date_time(data[1771]);
+                arrival_time.value = date;
+                $('#fields_1771').prop('readonly', true).siblings('.input-group-btn').remove();
+            },
+            error: function(error) {
+                console.log(error);
+            },
+        });
+    }
+}
+
 function show_service_request_number() {
     if (!contractor_id) {
         contractor_id = get_contractor_id();
@@ -2309,9 +2341,9 @@ function show_service_request_number() {
             //console.log(response);
             if (response) {
                 let form = document.querySelectorAll(".form-group-parent-item-id");
-                console.dir(form);
+                //console.dir(form);
                 if (form.length == 0) {
-                    console.log("in ui");
+                    //console.log("in ui");
                     form = document.querySelectorAll(".modal-title");
                 }
                 const request_number = document.createElement('h5');
@@ -2338,8 +2370,11 @@ function get_instance_url() {
     );
 }
 
-function today_date_time() {
-    const today = new Date();
+function today_date_time(timestamp) {
+    let today = new Date();
+    if (timestamp) {
+        today = new Date(timestamp * 1000);
+    }
     const date =
         today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate();
     let minutes = today.getMinutes();
